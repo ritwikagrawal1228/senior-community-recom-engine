@@ -649,9 +649,15 @@ function hideLoading() {
 }
 
 function updateProgressLogs(logs) {
-    if (!logs || logs.length === 0) return;
+    console.log('updateProgressLogs called with', logs ? logs.length : 0, 'logs');
+
+    if (!logs || logs.length === 0) {
+        console.log('No logs to display');
+        return;
+    }
 
     const logContainer = document.getElementById('progress-log');
+    console.log('Log container:', logContainer);
 
     logs.forEach(log => {
         const entry = document.createElement('div');
@@ -674,6 +680,7 @@ function updateProgressLogs(logs) {
 
     // Auto-scroll to bottom
     logContainer.scrollTop = logContainer.scrollHeight;
+    console.log('Progress logs updated, container height:', logContainer.scrollHeight);
 }
 
 function showError(message) {
