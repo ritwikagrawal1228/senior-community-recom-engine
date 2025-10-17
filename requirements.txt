@@ -20,3 +20,7 @@ gspread>=5.12.0             # Google Sheets API client
 google-auth>=2.23.4         # Google authentication
 google-auth-oauthlib>=1.1.0 # OAuth for Google APIs
 google-auth-httplib2>=0.1.1 # HTTP library for Google Auth
+
+# Web Interface
+Flask>=3.0.0                # Lightweight web framework
+Werkzeug>=3.0.0            # WSGI utility library (Flask dependency)

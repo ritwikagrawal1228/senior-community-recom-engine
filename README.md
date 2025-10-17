@@ -50,7 +50,28 @@ cp .env.example .env
 #   - GOOGLE_SERVICE_ACCOUNT_FILE (optional for CRM)
 ```
 
-### Run a Consultation
+### Option 1: Web Interface (Recommended for Non-Technical Users)
+
+**Start the web server:**
+
+```bash
+python app.py
+```
+
+**Then open your browser to:** `http://localhost:5000`
+
+**Features:**
+- ✅ **Drag & drop audio upload** - No command line needed
+- ✅ **Text consultation input** - Paste transcripts directly
+- ✅ **Database management** - Add, edit, delete communities via UI
+- ✅ **Visual results** - Beautiful cards with recommendations
+- ✅ **Built-in help** - Comprehensive user guide in Help tab
+
+**See:** [WEB_UI_GUIDE.md](WEB_UI_GUIDE.md) for detailed instructions
+
+---
+
+### Option 2: Command-Line Interface
 
 **Process audio file and push to Google Sheets CRM:**
 
