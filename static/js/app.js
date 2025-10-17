@@ -322,20 +322,20 @@ function displayResults(result) {
                 <div class="metrics-row">
                     <div class="metric">
                         <span class="metric-label">Monthly Fee</span>
-                        <span class="metric-value">$${(rec.monthly_fee || 0).toLocaleString()}</span>
+                        <span class="metric-value">$${((rec.key_metrics && rec.key_metrics.monthly_fee) || 0).toLocaleString()}</span>
                     </div>
                     <div class="metric">
                         <span class="metric-label">Distance</span>
-                        <span class="metric-value">${(rec.distance_miles || 0).toFixed(2)} mi</span>
+                        <span class="metric-value">${((rec.key_metrics && rec.key_metrics.distance_miles) || 0).toFixed(2)} mi</span>
                     </div>
                     <div class="metric">
                         <span class="metric-label">Availability</span>
-                        <span class="metric-value">${rec.est_waitlist || 'Unknown'}</span>
+                        <span class="metric-value">${(rec.key_metrics && rec.key_metrics.est_waitlist) || 'Unknown'}</span>
                     </div>
                 </div>
                 <div class="reasoning">
                     <div class="reasoning-label">AI Reasoning</div>
-                    <div class="reasoning-text">${rec.holistic_reason || 'No reasoning available'}</div>
+                    <div class="reasoning-text">${(rec.explanations && rec.explanations.holistic_reason) || 'No reasoning available'}</div>
                 </div>
             </div>
         `;
