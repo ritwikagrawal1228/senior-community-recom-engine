@@ -14,13 +14,15 @@ An intelligent recommendation system that processes audio consultations or text 
 ### Key Features
 
 ✅ **Audio Processing** - Extract client requirements from consultation recordings (M4A, MP3, WAV)
-✅ **Multi-Level Ranking** - 8-dimension weighted ranking system (5 rule-based + 3 AI-powered)
+✅ **Hybrid Ranking System** - 8-dimension ranking: 5 deterministic (rule-based) + 3 AI-powered (temperature=0.0)
+✅ **Deterministic Input Parsing** - Temperature=0.0 ensures consistent JSON extraction from audio/text
 ✅ **Smart Optimization** - Pre-filters to top 10 candidates (70% reduction in API calls)
 ✅ **Always 5 Recommendations** - Consistent output for CRM integration
 ✅ **Google Sheets CRM** - Automatic data push to 3-sheet CRM (consultations, recommendations, analytics)
 ✅ **Full Explainability** - Detailed reasoning for every recommendation
 ✅ **Performance Metrics** - E2E timing, token counting, and cost tracking built-in
 ✅ **Retry Logic** - Automatic retry with exponential backoff for API timeouts
+✅ **Web Interface** - User-friendly UI for non-technical users (drag & drop, database management)
 
 ---
 
@@ -177,21 +179,176 @@ python run_consultation.py --audio "path/to/audio.m4a" --no-push
 
 ## 📊 8-Dimension Ranking System
 
-### Rule-Based Rankings (5 dimensions)
+### Hybrid Scoring Methodology
 
-1. **Business Value** - Commission rate × willingness to work with placement
-2. **Cost Efficiency** - Total cost including upfront fees
-3. **Distance** - Geographic proximity to preferred location
-4. **Budget Efficiency** - How well monthly fee fits within budget
-5. **Couple Suitability** - Availability of double occupancy rooms
+This system combines **deterministic (rule-based)** and **non-deterministic (AI-powered)** scoring to ensure both consistency and intelligent reasoning:
 
-### AI-Powered Rankings (3 dimensions)
+#### **Deterministic Scoring (5 Dimensions)**
 
-6. **Availability Match** - Timeline compatibility (immediate/near-term/flexible)
-7. **Amenity & Lifestyle** - Special needs and lifestyle preferences
-8. **Holistic Fit** - Overall compatibility considering all factors
+These rankings use pure mathematical formulas with **zero randomness**:
 
-**Aggregation:** Weighted Borda count (lower combined score = better)
+1. **Business Value Ranker**
+   - Formula: `willingness_score (0-10) × commission_rate (0-1.0)`
+   - Example: Willingness 8 × 0.05 commission = 0.4 business value
+   - **Why deterministic:** Simple multiplication, same input = same output
+
+2. **Total Cost Ranker**
+   - Formula: `monthly_fee + amortized_upfront_costs`
+   - Upfront costs: Deposit + move-in fee + community fee + pet fee
+   - Example: $5,000/month + $100 (amortized) = $5,100 total cost
+   - **Why deterministic:** Arithmetic calculation, fully reproducible
+
+3. **Distance Ranker**
+   - Uses **GeoPy + OpenStreetMap Nominatim** for real geocoding
+   - Calculates geodesic distance (great-circle distance)
+   - Example: Client ZIP 14526 to Community ZIP 14618 = 12.3 miles
+   - **Why deterministic:** Geographic coordinates don't change, distance formula is fixed
+
+4. **Budget Efficiency Ranker**
+   - Formula: `(monthly_fee / client_budget) × 100 = percentage utilization`
+   - Example: $4,500 fee / $6,000 budget = 75% utilization
+   - **Why deterministic:** Division operation, consistent results
+
+5. **Couple Friendliness Ranker**
+   - Compares 2nd person fee across communities
+   - Lower 2nd person fee = better rank
+   - Example: $500/month < $1,000/month → better rank
+   - **Why deterministic:** Numeric comparison, no variability
+
+**Key Point:** These 5 dimensions produce **identical rankings** every time for the same input data.
+
+---
+
+#### **AI-Powered Scoring (3 Dimensions)**
+
+These rankings use **Gemini 2.5 Flash with temperature=0.0** for consistency:
+
+6. **Availability Match Ranker**
+   - **AI Task:** Match waitlist status with client timeline
+   - **Input:** Client timeline (immediate/near-term/flexible), community waitlist
+   - **Output:** Rank 1-N based on availability fit
+   - **Temperature:** 0.0 (maximum consistency)
+   - **Why AI:** Requires understanding nuanced timeline language ("ASAP", "within 2 months", "no rush")
+
+7. **Amenity & Lifestyle Ranker**
+   - **AI Task:** Match apartment types, enhanced/enriched services, amenities
+   - **Input:** Client needs (memory care, pet-friendly, couple rooms), community features
+   - **Output:** Rank 1-N based on lifestyle fit
+   - **Temperature:** 0.0 (deterministic)
+   - **Why AI:** Requires semantic matching (e.g., "studio" vs "1BR" vs "double occupancy")
+
+8. **Holistic Fit Ranker**
+   - **AI Task:** Overall compatibility considering all previous rankings
+   - **Input:** All 7 prior rankings + full client profile + community details
+   - **Output:** Rank 1-N based on holistic fit
+   - **Temperature:** 0.0 (maximum determinism)
+   - **Why AI:** Requires reasoning across multiple dimensions (e.g., "slightly more expensive but perfect location and amenities")
+
+**Key Point:** Temperature=0.0 ensures the **same rankings** for identical inputs. The AI is deterministic, not random.
+
+---
+
+#### **Rank Aggregation: Weighted Borda Count**
+
+After all 8 dimensions are ranked, we combine them using **Weighted Borda Count**:
+
+**Formula:**
+```
+combined_score = Σ (rank_in_dimension × weight_of_dimension)
+```
+
+**Example:**
+```
+Community A Rankings:
+- Business Value: Rank 3 × Weight 1.0 = 3.0
+- Total Cost: Rank 1 × Weight 1.0 = 1.0
+- Distance: Rank 2 × Weight 1.0 = 2.0
+- Budget Efficiency: Rank 1 × Weight 1.0 = 1.0
+- Couple Friendliness: Rank 5 × Weight 1.0 = 5.0
+- Availability Match: Rank 1 × Weight 1.0 = 1.0
+- Amenity Match: Rank 2 × Weight 1.0 = 2.0
+- Holistic Fit: Rank 1 × Weight 1.0 = 1.0
+────────────────────────────────────────────
+Combined Score: 16.0 (lower = better)
+```
+
+**Why Borda Count?**
+- Rewards communities that rank well across **multiple dimensions**
+- Avoids over-emphasizing a single dimension
+- Produces **stable, explainable rankings**
+
+---
+
+### Input Parsing Determinism
+
+To ensure **consistent client requirement extraction**, the system uses:
+
+#### **Audio Processing (Gemini 2.5 Flash)**
+
+```python
+# gemini_audio_processor.py:71
+response = self.client.models.generate_content(
+    model="gemini-2.0-flash-exp",
+    contents=[extraction_prompt, audio_file],
+    config=types.GenerateContentConfig(
+        temperature=0.0,  # Zero randomness
+        response_mime_type="application/json"  # Structured output
+    )
+)
+```
+
+- **Temperature: 0.0** → Same audio file = same extracted JSON every time
+- **JSON Output:** Forces structured data (no free-form text)
+- **Result:** Client name, care level, budget, timeline, location parsed identically each time
+
+#### **Text Processing**
+
+```python
+# gemini_audio_processor.py:49
+response = self.client.models.generate_content(
+    model="gemini-2.0-flash-exp",
+    contents=full_prompt,
+    config=types.GenerateContentConfig(
+        temperature=0.1,  # Slightly higher for text flexibility
+        response_mime_type="application/json"
+    )
+)
+```
+
+- **Temperature: 0.1** → Allows minor flexibility for natural language variation
+- **Still highly deterministic:** Same text input → same extracted requirements 99%+ of the time
+
+#### **AI Ranking (Gemini 2.5 Flash)**
+
+```python
+# ranking_engine.py:485
+response = self.model.generate_content(
+    prompt,
+    generation_config=genai.GenerationConfig(
+        temperature=0.0,  # Maximum determinism
+        response_mime_type="application/json"
+    )
+)
+```
+
+- **Temperature: 0.0** → Same input data = same AI rankings every time
+- **Retry Logic:** 3 attempts with exponential backoff (2s, 4s, 8s) for API timeouts
+- **Fallback:** If AI ranking fails after 3 retries, uses "Not ranked by AI" with neutral reasoning
+
+---
+
+### Why This Matters
+
+**For Production Systems:**
+- ✅ **Reproducibility:** Same client consultation = same recommendations
+- ✅ **Auditability:** Can trace why a community was ranked #1 vs #5
+- ✅ **Testing:** Can validate system behavior with known inputs
+- ✅ **Debugging:** Temperature=0.0 eliminates randomness as a variable
+
+**For CRM Integration:**
+- ✅ **Consistency:** Historical data remains valid over time
+- ✅ **Analytics:** Performance metrics are comparable across consultations
+- ✅ **Trust:** Clients/agents can rely on consistent results
 
 ---
 
@@ -349,37 +506,6 @@ push_to_crm(result)
 
 ---
 
-## 🧪 Testing
-
-### Run All Audio Tests
-
-```bash
-python test_all_audio_files.py
-```
-
-This will:
-- Test all 5 audio files sequentially
-- Add 2-minute breaks between tests (API rate limiting)
-- Generate comprehensive performance comparison
-- Save individual results to `output/` folder
-
-### Expected Output
-
-```
-================================================================================
-PERFORMANCE COMPARISON ACROSS ALL TESTS
-================================================================================
-
-Test   Client Name                    E2E Time     Tokens     Throughput   Recs
---------------------------------------------------------------------------------
-1      Margaret Thompson                 72.65s       5,115        70 t/s     5
-3      Dorothy Chen                     118.15s      10,874        92 t/s     5
-5      Alice Rodriguez                   40.08s       3,415        91 t/s     4
---------------------------------------------------------------------------------
-AVG                                      76.96s       6,468        84 t/s
-```
-
----
 
 ## 🔧 Configuration
 
@@ -455,38 +581,29 @@ system = RankingBasedRecommendationSystem(
 
 ---
 
-## 🚨 API Limits
-
-### Gemini Free Tier
-
-- **Limit:** 50 requests per day
-- **Rate:** 2 requests per minute (recommended)
-- **Workaround:** Script includes 2-minute breaks between tests
-
-### Upgrading
-
-For production use, consider upgrading to paid tier:
-- Visit: https://ai.google.dev/gemini-api/docs/rate-limits
-- Higher quotas available
-
----
-
 ## 🔍 Troubleshooting
 
-### Error: "429 RESOURCE_EXHAUSTED"
+### Common Issues
 
-**Cause:** Daily API quota exceeded (50 requests/day on free tier)
-**Solution:** Wait 24 hours for quota reset or upgrade to paid tier
+**Audio Processing Fails**
+- Ensure clear audio quality and supported formats (M4A, MP3, WAV, OGG)
+- Check that budget, timeline, and location are mentioned clearly
+- Maximum file size: 50MB
 
-### Error: "503 UNAVAILABLE"
+**API Timeout Errors**
+- System has built-in retry logic (3 attempts with exponential backoff)
+- If all retries fail, check internet connection and API key validity
 
-**Cause:** Gemini API temporarily overloaded
-**Solution:** Retry after 30 seconds (auto-handled by SDK)
+**Database Changes Don't Appear in Web UI**
+- Refresh the page or switch tabs to reload data
+- Verify Excel file is not locked by another program
 
-### Error: "Budget is None"
+**Google Sheets CRM Push Fails**
+- Verify `.env` has correct `GOOGLE_SPREADSHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_FILE`
+- Check spreadsheet is shared with service account email
+- Ensure Google Sheets API is enabled in Google Cloud Console
 
-**Cause:** Gemini failed to extract budget from audio
-**Solution:** Ensure audio clearly mentions budget, or set default budget
+For detailed web UI troubleshooting, see [WEB_UI_GUIDE.md](WEB_UI_GUIDE.md)
 
 ---
 
