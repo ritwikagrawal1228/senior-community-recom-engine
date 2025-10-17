@@ -4,7 +4,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-orange.svg)](https://ai.google.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
@@ -470,45 +469,16 @@ For production use, consider upgrading to paid tier:
 
 ---
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 🙏 Acknowledgments
 
 - **Google Gemini Team** - For the powerful Gemini 2.5 Flash model
 - **OpenStreetMap Nominatim** - For geocoding services
-- **Claude AI** - For development assistance
-
----
-
-## 📧 Contact
-
-**Ritwik Agrawal**
-GitHub: [@ritwikagrawal1228](https://github.com/ritwikagrawal1228)
-Repository: [senior-community-recom-engine](https://github.com/ritwikagrawal1228/senior-community-recom-engine)
 
 ---
 
 ## 🔗 Links
 
 - [Gemini API Documentation](https://ai.google.dev/gemini-api/docs)
-- [Project Documentation](RANKING_SYSTEM_README.md)
-- [Usage Guide](USAGE_GUIDE.md)
+- [Ranking System Documentation](RANKING_SYSTEM_README.md)
+- [Google Sheets Setup Guide](GOOGLE_SHEETS_SETUP.md)
 - [Codebase Structure](CODEBASE_STRUCTURE.md)
-
----
-
-**⭐ If you find this project helpful, please consider giving it a star!**
