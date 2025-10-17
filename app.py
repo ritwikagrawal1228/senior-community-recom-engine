@@ -5,6 +5,8 @@ Simple Flask backend for UI interaction
 
 import os
 import json
+import sys
+from io import StringIO
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import pandas as pd
@@ -13,6 +15,23 @@ from dotenv import load_dotenv
 
 from main_pipeline_ranking import RankingBasedRecommendationSystem
 from google_sheets_integration import push_to_crm
+
+# Global variable to store logs
+current_logs = []
+
+class LogCapture:
+    """Capture print statements to a list"""
+    def __init__(self):
+        self.logs = []
+
+    def write(self, message):
+        if message.strip():
+            self.logs.append(message.strip())
+            global current_logs
+            current_logs.append(message.strip())
+
+    def flush(self):
+        pass
 
 # Load environment
 load_dotenv()
@@ -53,6 +72,14 @@ def health_check():
 @app.route('/api/process-audio', methods=['POST'])
 def process_audio():
     """Process uploaded audio file"""
+    global current_logs
+    current_logs = []  # Reset logs
+
+    # Capture stdout
+    log_capture = LogCapture()
+    old_stdout = sys.stdout
+    sys.stdout = log_capture
+
     try:
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
@@ -87,14 +114,27 @@ def process_audio():
             result['crm_pushed'] = True
             result['consultation_id'] = crm_result['consultation_id']
 
+        # Add logs to result
+        result['logs'] = log_capture.logs
+
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'logs': log_capture.logs}), 500
+    finally:
+        sys.stdout = old_stdout
 
 @app.route('/api/process-text', methods=['POST'])
 def process_text():
     """Process text consultation"""
+    global current_logs
+    current_logs = []  # Reset logs
+
+    # Capture stdout
+    log_capture = LogCapture()
+    old_stdout = sys.stdout
+    sys.stdout = log_capture
+
     try:
         data = request.get_json()
         text = data.get('text', '')
@@ -121,10 +161,15 @@ def process_text():
             result['crm_pushed'] = True
             result['consultation_id'] = crm_result['consultation_id']
 
+        # Add logs to result
+        result['logs'] = log_capture.logs
+
         return jsonify(result)
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'logs': log_capture.logs}), 500
+    finally:
+        sys.stdout = old_stdout
 
 @app.route('/api/communities', methods=['GET'])
 def get_communities():

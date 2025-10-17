@@ -438,6 +438,7 @@ Client: She lives in Rochester, ZIP 14618."
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-spinner"></div>
         <p id="loading-text">Processing consultation...</p>
+        <div id="progress-log" class="progress-log"></div>
     </div>
 
     <!-- Modal for Add/Edit Community -->
@@ -458,7 +459,7 @@ Client: She lives in Rochester, ZIP 14618."
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="care-level">Care Level *</label>
+                            <label for="care-level">Care Level * (Type of Service)</label>
                             <select id="care-level" required>
                                 <option value="">Select...</option>
                                 <option value="Independent Living">Independent Living</option>
@@ -478,14 +479,46 @@ Client: She lives in Rochester, ZIP 14618."
                             <input type="text" id="zip-code" pattern="[0-9]{5}" maxlength="5" required>
                         </div>
                         <div class="form-group">
-                            <label for="contract-rate">Contract Rate (%)</label>
-                            <input type="number" id="contract-rate" step="0.01" min="0" max="100">
+                            <label for="apartment-type">Apartment Type</label>
+                            <select id="apartment-type">
+                                <option value="">Select...</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedroom">2 Bedroom</option>
+                                <option value="Shared Room">Shared Room</option>
+                            </select>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="waitlist">Waitlist Status</label>
+                            <label for="deposit">Deposit ($)</label>
+                            <input type="number" id="deposit" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="move-in-fee">Move-In Fee ($)</label>
+                            <input type="number" id="move-in-fee" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="second-person-fee">2nd Person Fee ($)</label>
+                            <input type="number" id="second-person-fee" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="pet-fee">Pet Fee ($)</label>
+                            <input type="number" id="pet-fee" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contract-rate">Contract Rate (%) *</label>
+                            <input type="number" id="contract-rate" step="0.01" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="waitlist">Waitlist Status *</label>
                             <select id="waitlist">
                                 <option value="Available">Available</option>
                                 <option value="1-2 months">1-2 months</option>
@@ -494,12 +527,19 @@ Client: She lives in Rochester, ZIP 14618."
                                 <option value="Unconfirmed">Unconfirmed</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group">
-                            <label for="work-placement">Work with Placement?</label>
+                            <label for="work-placement">Work with Placement? *</label>
                             <select id="work-placement">
                                 <option value="TRUE">Yes</option>
                                 <option value="FALSE">No</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="community-fee">Community Fee - One Time ($)</label>
+                            <input type="number" id="community-fee" step="0.01" min="0">
                         </div>
                     </div>
 

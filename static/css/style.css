@@ -843,10 +843,16 @@ body {
     background: white;
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-xl);
-    max-width: 600px;
+    max-width: 700px;
     width: 90%;
     max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body {
     overflow-y: auto;
+    flex: 1;
 }
 
 .modal-header {
@@ -968,6 +974,53 @@ body {
     font-size: 1.125rem;
     font-weight: 500;
     color: var(--gray-700);
+    margin-bottom: var(--spacing-xl);
+}
+
+.progress-log {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    max-width: 700px;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--gray-700);
+    text-align: left;
+}
+
+.progress-log:empty {
+    display: none;
+}
+
+.log-entry {
+    padding: var(--spacing-xs) 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-entry.phase {
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: var(--spacing-sm);
+}
+
+.log-entry.success {
+    color: var(--success);
+}
+
+.log-entry.warning {
+    color: var(--warning);
+}
+
+.log-entry.error {
+    color: var(--error);
 }
 
 /* ========================================

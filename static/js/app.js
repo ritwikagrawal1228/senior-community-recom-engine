@@ -189,8 +189,20 @@ async function processAudioConsultation() {
         const result = await response.json();
 
         if (!response.ok) {
+            // Show logs even on error
+            if (result.logs) {
+                updateProgressLogs(result.logs);
+            }
             throw new Error(result.error || 'Processing failed');
         }
+
+        // Display logs before showing results
+        if (result.logs) {
+            updateProgressLogs(result.logs);
+        }
+
+        // Brief delay to let user see the final logs
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         displayResults(result);
     } catch (error) {
@@ -227,8 +239,20 @@ async function processTextConsultation() {
         const result = await response.json();
 
         if (!response.ok) {
+            // Show logs even on error
+            if (result.logs) {
+                updateProgressLogs(result.logs);
+            }
             throw new Error(result.error || 'Processing failed');
         }
+
+        // Display logs before showing results
+        if (result.logs) {
+            updateProgressLogs(result.logs);
+        }
+
+        // Brief delay to let user see the final logs
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         displayResults(result);
     } catch (error) {
@@ -317,21 +341,22 @@ function displayResults(result) {
         `;
     }).join('');
 
-    // Display metrics
-    const metrics = result.metrics || {};
-    const costs = metrics.costs || {};
+    // Display metrics - FIX: Use performance_metrics not metrics
+    const perfMetrics = result.performance_metrics || {};
+    const timings = perfMetrics.timings || {};
+    const tokenCounts = perfMetrics.token_counts || {};
+    const costs = perfMetrics.costs || {};
+
     metricsInfo.innerHTML = `
         <h3>Performance Metrics</h3>
         <div class="metrics-grid">
             <div class="metric-item">
                 <span class="metric-item-label">Processing Time</span>
-                <span class="metric-item-value">${(metrics.total_time || 0).toFixed(1)}s</span>
+                <span class="metric-item-value">${(timings.e2e_total || 0).toFixed(1)}s</span>
             </div>
             <div class="metric-item">
                 <span class="metric-item-label">Total Tokens</span>
-                <span class="metric-item-value">${((metrics.token_counts?.extraction_input || 0) +
-                                                    (metrics.token_counts?.ranking_input || 0) +
-                                                    (metrics.token_counts?.total_output_tokens || 0)).toLocaleString()}</span>
+                <span class="metric-item-value">${(tokenCounts.total_tokens || 0).toLocaleString()}</span>
             </div>
             <div class="metric-item">
                 <span class="metric-item-label">Total Cost</span>
@@ -481,10 +506,16 @@ async function editCommunity(communityId) {
 
         // Populate form
         document.getElementById('community-id').value = community.CommunityID;
-        document.getElementById('care-level').value = community['Care Level'] || '';
+        document.getElementById('care-level').value = community['Type of Service'] || '';
         document.getElementById('monthly-fee').value = community['Monthly Fee'] || '';
         document.getElementById('zip-code').value = community.ZIP || '';
-        document.getElementById('contract-rate').value = community['Contract Rate'] || '';
+        document.getElementById('apartment-type').value = community['Apartment Type'] || '';
+        document.getElementById('deposit').value = community.Deposit || '';
+        document.getElementById('move-in-fee').value = community['Move-In Fee'] || '';
+        document.getElementById('second-person-fee').value = community['2nd Person Fee'] || '';
+        document.getElementById('pet-fee').value = community['Pet Fee'] || '';
+        document.getElementById('community-fee').value = community['Community Fee - One Time'] || '';
+        document.getElementById('contract-rate').value = community['Contract (w rate)?'] || '';
         document.getElementById('waitlist').value = community['Est. Waitlist Length'] || 'Unconfirmed';
         document.getElementById('work-placement').value = community['Work with Placement?'] ? 'TRUE' : 'FALSE';
         document.getElementById('enhanced').checked = community.Enhanced || false;
@@ -500,10 +531,16 @@ async function editCommunity(communityId) {
 
 async function saveCommunity() {
     const data = {
-        'Care Level': document.getElementById('care-level').value,
+        'Type of Service': document.getElementById('care-level').value,
         'Monthly Fee': parseFloat(document.getElementById('monthly-fee').value),
         'ZIP': document.getElementById('zip-code').value,
-        'Contract Rate': parseFloat(document.getElementById('contract-rate').value) || 0,
+        'Apartment Type': document.getElementById('apartment-type').value || '',
+        'Deposit': parseFloat(document.getElementById('deposit').value) || 0,
+        'Move-In Fee': parseFloat(document.getElementById('move-in-fee').value) || 0,
+        '2nd Person Fee': parseFloat(document.getElementById('second-person-fee').value) || 0,
+        'Pet Fee': parseFloat(document.getElementById('pet-fee').value) || 0,
+        'Community Fee - One Time': parseFloat(document.getElementById('community-fee').value) || 0,
+        'Contract (w rate)?': parseFloat(document.getElementById('contract-rate').value) || 0,
         'Est. Waitlist Length': document.getElementById('waitlist').value,
         'Work with Placement?': document.getElementById('work-placement').value === 'TRUE',
         'Enhanced': document.getElementById('enhanced').checked,
@@ -603,11 +640,40 @@ async function checkSystemHealth() {
 
 function showLoading(message = 'Loading...') {
     document.getElementById('loading-text').textContent = message;
+    document.getElementById('progress-log').innerHTML = ''; // Clear previous logs
     document.getElementById('loading-overlay').classList.add('active');
 }
 
 function hideLoading() {
     document.getElementById('loading-overlay').classList.remove('active');
+}
+
+function updateProgressLogs(logs) {
+    if (!logs || logs.length === 0) return;
+
+    const logContainer = document.getElementById('progress-log');
+
+    logs.forEach(log => {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+
+        // Classify log type
+        if (log.includes('PHASE') || log.includes('PROCESSING') || log.includes('INITIALIZING')) {
+            entry.classList.add('phase');
+        } else if (log.includes('[SUCCESS]') || log.includes('[OK]') || log.includes('[COMPLETE]')) {
+            entry.classList.add('success');
+        } else if (log.includes('[WARNING]') || log.includes('[RETRY]')) {
+            entry.classList.add('warning');
+        } else if (log.includes('[ERROR]') || log.includes('Error') || log.includes('failed')) {
+            entry.classList.add('error');
+        }
+
+        entry.textContent = log;
+        logContainer.appendChild(entry);
+    });
+
+    // Auto-scroll to bottom
+    logContainer.scrollTop = logContainer.scrollHeight;
 }
 
 function showError(message) {
