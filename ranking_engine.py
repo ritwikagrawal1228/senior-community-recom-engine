@@ -473,21 +473,42 @@ class GeminiRanker(RankingDimension):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
 
-    def _call_gemini(self, prompt: str, timeout: int = 60) -> Dict[str, Any]:
-        """Call Gemini API with structured JSON output and timeout"""
-        try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=0.0,
-                    response_mime_type="application/json"
-                ),
-                request_options={"timeout": timeout}
-            )
-            return json.loads(response.text)
-        except Exception as e:
-            print(f"  [WARNING] Gemini API error in {self.name}: {e}")
-            return {"rankings": []}
+    def _call_gemini(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Dict[str, Any]:
+        """Call Gemini API with structured JSON output, timeout, and retry logic"""
+        import time
+
+        for attempt in range(max_retries):
+            try:
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=genai.GenerationConfig(
+                        temperature=0.0,
+                        response_mime_type="application/json"
+                    ),
+                    request_options={"timeout": timeout}
+                )
+                return json.loads(response.text)
+            except Exception as e:
+                error_msg = str(e)
+
+                # Check if it's a timeout or rate limit error
+                if '504' in error_msg or 'timeout' in error_msg.lower():
+                    if attempt < max_retries - 1:
+                        wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
+                        print(f"  [RETRY] {self.name} timed out, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        print(f"  [WARNING] Gemini API error in {self.name} after {max_retries} attempts: {e}")
+                        return {"rankings": []}
+                elif '429' in error_msg or 'quota' in error_msg.lower():
+                    print(f"  [WARNING] Gemini API quota exceeded in {self.name}: {e}")
+                    return {"rankings": []}
+                else:
+                    print(f"  [WARNING] Gemini API error in {self.name}: {e}")
+                    return {"rankings": []}
+
+        return {"rankings": []}
 
     def _prepare_community_data(self, communities: pd.DataFrame, fields: List[str]) -> List[Dict]:
         """Prepare community data for Gemini prompt"""
@@ -1070,7 +1091,7 @@ class MultiLevelRankingEngine:
                 amenity_rank=int(score_data['ranks'].get('amenity_rank', 0)),
                 holistic_rank=int(score_data['ranks'].get('holistic_rank', 0)),
 
-                # Reasons
+                # Reasons (with improved fallback for holistic)
                 business_reason=score_data['reasons'].get('business_rank_reason', ''),
                 total_cost_reason=score_data['reasons'].get('total_cost_rank_reason', ''),
                 distance_reason=score_data['reasons'].get('distance_rank_reason', ''),
@@ -1078,7 +1099,7 @@ class MultiLevelRankingEngine:
                 budget_efficiency_reason=score_data['reasons'].get('budget_efficiency_rank_reason', ''),
                 couple_reason=score_data['reasons'].get('couple_rank_reason', ''),
                 amenity_reason=score_data['reasons'].get('amenity_rank_reason', ''),
-                holistic_reason=score_data['reasons'].get('holistic_rank_reason', ''),
+                holistic_reason=score_data['reasons'].get('holistic_rank_reason', '') or self._generate_fallback_holistic_reason(comm_data, monthly_fee, client_req),
 
                 # Key metrics
                 monthly_fee=monthly_fee,
@@ -1106,6 +1127,50 @@ class MultiLevelRankingEngine:
             return float(value)
         except:
             return default
+
+    def _generate_fallback_holistic_reason(self, comm_data: Dict, monthly_fee: float, client_req: ClientRequirements) -> str:
+        """Generate a basic holistic reason when AI ranking fails"""
+        waitlist = str(comm_data.get('Est. Waitlist Length', 'Unconfirmed'))
+
+        # Assess availability match
+        if client_req.timeline == 'immediate':
+            if 'Available' in waitlist:
+                timeline_match = "available for immediate need"
+            elif 'Unconfirmed' in waitlist:
+                timeline_match = "availability unconfirmed, less ideal for immediate need"
+            else:
+                timeline_match = f"has waitlist ({waitlist}), may not meet immediate timeline"
+        elif client_req.timeline == 'near-term':
+            if 'Available' in waitlist or '1-2 months' in waitlist:
+                timeline_match = "available for near-term timeline"
+            elif 'Unconfirmed' in waitlist:
+                timeline_match = "availability unconfirmed, less ideal for near-term timeline"
+            else:
+                timeline_match = f"waitlist status ({waitlist}) uncertain for near-term need"
+        else:
+            timeline_match = f"waitlist: {waitlist}"
+
+        # Assess value
+        budget_ratio = (monthly_fee / client_req.budget) * 100 if client_req.budget > 0 else 100
+        if budget_ratio <= 60:
+            value_assessment = "excellent value"
+        elif budget_ratio <= 75:
+            value_assessment = "good value"
+        elif budget_ratio <= 90:
+            value_assessment = "fair value"
+        else:
+            value_assessment = "near budget limit"
+
+        # Generate reason
+        reason = f"{timeline_match.capitalize()}. Monthly fee of ${monthly_fee:,.0f} is {value_assessment}"
+
+        # Add availability warning if unconfirmed
+        if 'unconfirmed' in waitlist.lower() or 'Unconfirmed' in waitlist:
+            reason += " if available"
+
+        reason += "."
+
+        return reason
 
     def export_to_crm_format(self, rankings: List[CommunityRanking], client_req: ClientRequirements) -> Dict[str, Any]:
         """

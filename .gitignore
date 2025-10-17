@@ -42,6 +42,13 @@ env/
 *.env
 !.env.example
 
+# Google Sheets Service Account
+*.json
+!package.json
+!tsconfig.json
+gen-lang-client-*.json
+service_account.json
+
 # Logs
 *.log
 

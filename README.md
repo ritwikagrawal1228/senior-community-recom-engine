@@ -18,8 +18,10 @@ An intelligent recommendation system that processes audio consultations or text 
 ✅ **Multi-Level Ranking** - 8-dimension weighted ranking system (5 rule-based + 3 AI-powered)
 ✅ **Smart Optimization** - Pre-filters to top 10 candidates (70% reduction in API calls)
 ✅ **Always 5 Recommendations** - Consistent output for CRM integration
+✅ **Google Sheets CRM** - Automatic data push to 3-sheet CRM (consultations, recommendations, analytics)
 ✅ **Full Explainability** - Detailed reasoning for every recommendation
-✅ **Performance Metrics** - E2E timing and token counting built-in
+✅ **Performance Metrics** - E2E timing, token counting, and cost tracking built-in
+✅ **Retry Logic** - Automatic retry with exponential backoff for API timeouts
 
 ---
 
@@ -29,6 +31,7 @@ An intelligent recommendation system that processes audio consultations or text 
 
 - Python 3.9+
 - Gemini API Key ([Get one here](https://ai.google.dev/))
+- Google Sheets Service Account (for CRM integration) - Optional
 
 ### Installation
 
@@ -40,21 +43,26 @@ cd senior-community-recom-engine
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure API key
+# Configure environment variables
 cp .env.example .env
-# Edit .env and add your GEMINI_API_KEY
+# Edit .env and add:
+#   - GEMINI_API_KEY
+#   - GOOGLE_SPREADSHEET_ID (optional for CRM)
+#   - GOOGLE_SERVICE_ACCOUNT_FILE (optional for CRM)
 ```
 
-### Run Simple Demo
+### Run a Consultation
+
+**Process audio file and push to Google Sheets CRM:**
 
 ```bash
-python demo_simple_optimized.py
+python run_consultation.py --audio "audio-files/Transcript 1 (Margaret Thompson).m4a"
 ```
 
-### Test with Audio File
+**Process without pushing to CRM (testing only):**
 
 ```bash
-python demo_audio_optimized.py
+python run_consultation.py --audio "path/to/audio.m4a" --no-push
 ```
 
 ---
@@ -124,6 +132,14 @@ python demo_audio_optimized.py
 ┌─────────────────────────────┐
 │   Top 5 Recommendations     │
 │   with Explanations         │
+└──────┬──────────────────────┘
+       │
+       ▼
+┌─────────────────────────────┐
+│  Google Sheets CRM Push     │
+│  • Client Consultations     │
+│  • Recommendations Detail   │
+│  • Performance Analytics    │
 └─────────────────────────────┘
 ```
 
@@ -167,47 +183,60 @@ senior-community-recom-engine/
 │   ├── main_pipeline_ranking.py              # Main orchestrator
 │   ├── gemini_audio_processor.py             # Gemini 2.5 Flash integration
 │   ├── community_filter_engine_enhanced.py   # Hard filter engine
-│   ├── ranking_engine.py                     # 8-dimension ranking
+│   ├── ranking_engine.py                     # 8-dimension ranking (with retry logic)
 │   ├── geocoding_utils.py                    # Distance calculation
-│   └── location_resolver.py                  # Location mapping
+│   ├── location_resolver.py                  # Location mapping
+│   ├── google_sheets_integration.py          # CRM integration
+│   └── run_consultation.py                   # CLI entry point
 │
 ├── 📊 Data
 │   └── DataFile_students_OPTIMIZED.xlsx      # Production database (239 communities)
 │
-├── 🧪 Testing & Demos
-│   ├── test_all_audio_files.py               # Comprehensive testing
-│   ├── demo_simple_optimized.py              # Quick demo
-│   ├── demo_text_optimized.py                # Text input demo
-│   └── demo_audio_optimized.py               # Audio input demo
-│
-├── 🎤 Test Data
+├── 🎤 Sample Data
 │   └── audio-files/                          # 5 sample audio transcripts
 │
 ├── 📖 Documentation
 │   ├── README.md                             # This file
 │   ├── RANKING_SYSTEM_README.md              # Detailed ranking docs
-│   ├── USAGE_GUIDE.md                        # User guide
+│   ├── GOOGLE_SHEETS_SETUP.md                # CRM setup guide
 │   └── CODEBASE_STRUCTURE.md                 # Code organization
 │
-└── ⚙️ Configuration
-    ├── requirements.txt                      # Dependencies
-    ├── .env.example                          # Environment template
-    └── .gitignore                            # Git ignore rules
+├── ⚙️ Configuration
+│   ├── requirements.txt                      # Dependencies
+│   ├── .env.example                          # Environment template
+│   ├── .env                                  # Your config (not in git)
+│   └── .gitignore                            # Git ignore rules
+│
+└── 🗄️ Deprecated
+    └── deprecated/                           # Old/obsolete files
 ```
 
 ---
 
 ## 💻 Usage Examples
 
-### Process Audio File
+### Command-Line Interface (Recommended)
+
+**Process audio consultation and push to CRM:**
+
+```bash
+python run_consultation.py --audio "audio-files/Transcript 1 (Margaret Thompson).m4a"
+```
+
+**Available options:**
+- `--audio` - Path to audio file (required)
+- `--no-push` - Process without pushing to Google Sheets (optional)
+
+### Python API
+
+**Process audio file:**
 
 ```python
 from main_pipeline_ranking import RankingBasedRecommendationSystem
+from google_sheets_integration import push_to_crm
 
 # Initialize system
-system = RankingBasedRecommendationSystem(
-    data_file_path="DataFile_students_OPTIMIZED.xlsx"
-)
+system = RankingBasedRecommendationSystem()
 
 # Process audio file
 result = system.process_audio_file(
@@ -215,12 +244,12 @@ result = system.process_audio_file(
     output_file="output/result.json"
 )
 
-# Access results
-print(f"Top recommendation: {result['recommendations'][0]['community_name']}")
-print(f"E2E Time: {result['performance_metrics']['timings']['e2e_total']:.2f}s")
+# Push to Google Sheets CRM
+crm_result = push_to_crm(result)
+print(f"Consultation #{crm_result['consultation_id']} added to CRM")
 ```
 
-### Process Text Input
+**Process text input:**
 
 ```python
 # Process text consultation
@@ -231,10 +260,10 @@ We need something soon, within the next month or two.
 She's in Brighton area, ZIP code 14618.
 """
 
-result = system.process_text_input(
-    text=conversation,
-    output_file="output/text_result.json"
-)
+result = system.process_text_input(text=conversation)
+
+# Push to CRM
+push_to_crm(result)
 ```
 
 ---
@@ -275,14 +304,24 @@ result = system.process_text_input(
       }
     }
   ],
-  "performance_metrics": {
+  "metrics": {
+    "total_time": 72.65,
     "timings": {
-      "e2e_total": 72.65,
       "phase1_extraction": 3.61,
       "phase3_ranking": 69.04
     },
     "token_counts": {
-      "total_tokens": 5115
+      "extraction_input": 2000,
+      "ranking_input": 2500,
+      "total_output_tokens": 615
+    },
+    "costs": {
+      "audio_input_cost": 0.002,
+      "text_input_cost": 0.00075,
+      "output_cost": 0.001538,
+      "total_cost": 0.004288,
+      "currency": "USD",
+      "pricing_model": "Gemini 2.5 Flash (2025)"
     }
   }
 }
@@ -329,8 +368,23 @@ AVG                                      76.96s       6,468        84 t/s
 Create a `.env` file:
 
 ```bash
+# Required
 GEMINI_API_KEY=your_api_key_here
+
+# Optional - for Google Sheets CRM integration
+GOOGLE_SPREADSHEET_ID=your_spreadsheet_id
+GOOGLE_SERVICE_ACCOUNT_FILE=path/to/service-account.json
 ```
+
+### Google Sheets CRM Setup (Optional)
+
+1. Create a Google Cloud project and enable Google Sheets API
+2. Create a service account and download the JSON key file
+3. Create a Google Sheet and share it with the service account email
+4. Add credentials to `.env` file
+5. Run setup: `python setup_existing_sheet.py`
+
+For detailed instructions, see [GOOGLE_SHEETS_SETUP.md](GOOGLE_SHEETS_SETUP.md)
 
 ### Ranking Weights (Optional)
 

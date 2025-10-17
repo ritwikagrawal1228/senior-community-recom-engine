@@ -4,7 +4,10 @@
       "Bash(python:*)",
       "Bash(dir:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Senior Living Community Recommendation Engine\n\n🎉 Features:\n- AI-powered multi-level ranking system (8 dimensions)\n- Gemini 2.5 Flash integration for audio/text processing\n- Smart optimization (70% reduction in API calls)\n- Always returns top 5 recommendations with explanations\n- E2E timing and token counting\n- Comprehensive documentation\n\n📊 Performance:\n- Average E2E time: 79 seconds\n- Token throughput: 89 tokens/sec\n- Production-ready with optimized database\n\n🔧 Tech Stack:\n- Python 3.9+\n- Google Gemini 2.5 Flash\n- Pandas, GeoPy, OpenStreetMap Nominatim\n\nGenerated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

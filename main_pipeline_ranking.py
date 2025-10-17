@@ -167,6 +167,28 @@ class RankingBasedRecommendationSystem:
             metrics['token_counts']['total_output_tokens']
         )
 
+        # Calculate costs (Gemini 2.5 Flash pricing - 2025)
+        # Audio input: $1.00/1M tokens, Output: $2.50/1M tokens
+        audio_input_cost = (metrics['token_counts']['extraction_input'] / 1_000_000) * 1.00
+        text_input_cost = (metrics['token_counts']['ranking_input'] / 1_000_000) * 0.30
+        output_cost = (metrics['token_counts']['total_output_tokens'] / 1_000_000) * 2.50
+
+        total_cost = audio_input_cost + text_input_cost + output_cost
+
+        metrics['costs'] = {
+            'audio_input_cost': round(audio_input_cost, 6),
+            'text_input_cost': round(text_input_cost, 6),
+            'output_cost': round(output_cost, 6),
+            'total_cost': round(total_cost, 6),
+            'currency': 'USD',
+            'pricing_model': 'Gemini 2.5 Flash (2025)',
+            'pricing_rates': {
+                'audio_input': '$1.00 per 1M tokens',
+                'text_input': '$0.30 per 1M tokens',
+                'output': '$2.50 per 1M tokens'
+            }
+        }
+
         # Print performance summary
         print("\n" + "="*80)
         print("PERFORMANCE METRICS")
@@ -177,8 +199,14 @@ class RankingBasedRecommendationSystem:
         print(f"  - Phase 3 (Ranking): {phase3_time:.2f}s ({phase3_time/e2e_total_time*100:.1f}%)")
         print(f"  - Phase 4 (Output): {phase4_time:.2f}s ({phase4_time/e2e_total_time*100:.1f}%)")
         print(f"\n[TOKEN COUNT] Total: ~{metrics['token_counts']['total_tokens']:,} tokens")
-        print(f"  - Input: ~{metrics['token_counts']['total_input_tokens']:,} tokens")
+        print(f"  - Audio Input: ~{metrics['token_counts']['extraction_input']:,} tokens")
+        print(f"  - Text Input (Ranking): ~{metrics['token_counts']['ranking_input']:,} tokens")
         print(f"  - Output: ~{metrics['token_counts']['total_output_tokens']:,} tokens")
+        print(f"\n[COST BREAKDOWN] Gemini 2.5 Flash (2025 Pricing)")
+        print(f"  - Audio Input: ${audio_input_cost:.6f} ({metrics['token_counts']['extraction_input']:,} tokens @ $1.00/1M)")
+        print(f"  - Text Input: ${text_input_cost:.6f} ({metrics['token_counts']['ranking_input']:,} tokens @ $0.30/1M)")
+        print(f"  - Output: ${output_cost:.6f} ({metrics['token_counts']['total_output_tokens']:,} tokens @ $2.50/1M)")
+        print(f"  - TOTAL COST: ${total_cost:.6f}")
         print(f"\n[API CALLS] Gemini API: {metrics['api_calls']} calls")
         print(f"[THROUGHPUT] {metrics['token_counts']['total_tokens'] / e2e_total_time:.0f} tokens/sec")
         print("="*80)
@@ -290,6 +318,26 @@ class RankingBasedRecommendationSystem:
             metrics['token_counts']['total_output_tokens']
         )
 
+        # Calculate costs (Gemini 2.5 Flash pricing - 2025)
+        # Text input: $0.30/1M tokens, Output: $2.50/1M tokens
+        text_extraction_cost = (metrics['token_counts']['extraction_input'] / 1_000_000) * 0.30
+        text_ranking_cost = (metrics['token_counts']['ranking_input'] / 1_000_000) * 0.30
+        output_cost = (metrics['token_counts']['total_output_tokens'] / 1_000_000) * 2.50
+
+        total_cost = text_extraction_cost + text_ranking_cost + output_cost
+
+        metrics['costs'] = {
+            'text_input_cost': round(text_extraction_cost + text_ranking_cost, 6),
+            'output_cost': round(output_cost, 6),
+            'total_cost': round(total_cost, 6),
+            'currency': 'USD',
+            'pricing_model': 'Gemini 2.5 Flash (2025)',
+            'pricing_rates': {
+                'text_input': '$0.30 per 1M tokens',
+                'output': '$2.50 per 1M tokens'
+            }
+        }
+
         # Print performance summary
         print("\n" + "="*80)
         print("PERFORMANCE METRICS")
@@ -300,8 +348,12 @@ class RankingBasedRecommendationSystem:
         print(f"  - Phase 3 (Ranking): {phase3_time:.2f}s ({phase3_time/e2e_total_time*100:.1f}%)")
         print(f"  - Phase 4 (Output): {phase4_time:.2f}s ({phase4_time/e2e_total_time*100:.1f}%)")
         print(f"\n[TOKEN COUNT] Total: ~{metrics['token_counts']['total_tokens']:,} tokens")
-        print(f"  - Input: ~{metrics['token_counts']['total_input_tokens']:,} tokens")
+        print(f"  - Text Input: ~{metrics['token_counts']['total_input_tokens']:,} tokens")
         print(f"  - Output: ~{metrics['token_counts']['total_output_tokens']:,} tokens")
+        print(f"\n[COST BREAKDOWN] Gemini 2.5 Flash (2025 Pricing)")
+        print(f"  - Text Input: ${text_extraction_cost + text_ranking_cost:.6f} ({metrics['token_counts']['total_input_tokens']:,} tokens @ $0.30/1M)")
+        print(f"  - Output: ${output_cost:.6f} ({metrics['token_counts']['total_output_tokens']:,} tokens @ $2.50/1M)")
+        print(f"  - TOTAL COST: ${total_cost:.6f}")
         print(f"\n[API CALLS] Gemini API: {metrics['api_calls']} calls")
         print(f"[THROUGHPUT] {metrics['token_counts']['total_tokens'] / e2e_total_time:.0f} tokens/sec")
         print("="*80)
