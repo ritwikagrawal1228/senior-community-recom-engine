@@ -20,18 +20,24 @@ from google_sheets_integration import push_to_crm
 current_logs = []
 
 class LogCapture:
-    """Capture print statements to a list"""
-    def __init__(self):
+    """Capture print statements to a list while still printing to console"""
+    def __init__(self, original_stdout):
         self.logs = []
+        self.original_stdout = original_stdout
 
     def write(self, message):
+        # Write to original stdout (console)
+        self.original_stdout.write(message)
+        self.original_stdout.flush()
+
+        # Also capture to logs
         if message.strip():
             self.logs.append(message.strip())
             global current_logs
             current_logs.append(message.strip())
 
     def flush(self):
-        pass
+        self.original_stdout.flush()
 
 # Load environment
 load_dotenv()
@@ -75,9 +81,9 @@ def process_audio():
     global current_logs
     current_logs = []  # Reset logs
 
-    # Capture stdout
-    log_capture = LogCapture()
+    # Capture stdout while still printing to console
     old_stdout = sys.stdout
+    log_capture = LogCapture(old_stdout)
     sys.stdout = log_capture
 
     try:
@@ -130,9 +136,9 @@ def process_text():
     global current_logs
     current_logs = []  # Reset logs
 
-    # Capture stdout
-    log_capture = LogCapture()
+    # Capture stdout while still printing to console
     old_stdout = sys.stdout
+    log_capture = LogCapture(old_stdout)
     sys.stdout = log_capture
 
     try:
@@ -315,9 +321,12 @@ def get_stats():
     try:
         df = pd.read_excel('DataFile_students_OPTIMIZED.xlsx')
 
+        # Use Type of Service column (same as Care Level)
+        care_level_col = 'Type of Service' if 'Type of Service' in df.columns else 'Care Level'
+
         stats = {
             'total_communities': len(df),
-            'care_levels': df['Care Level'].value_counts().to_dict(),
+            'care_levels': df[care_level_col].value_counts().to_dict() if care_level_col in df.columns else {},
             'avg_monthly_fee': float(df['Monthly Fee'].mean()) if 'Monthly Fee' in df.columns else 0,
             'enhanced_available': int(df['Enhanced'].sum()) if 'Enhanced' in df.columns else 0,
             'working_with_placement': int(df['Work with Placement?'].sum()) if 'Work with Placement?' in df.columns else 0
