@@ -607,10 +607,23 @@ For detailed web UI troubleshooting, see [WEB_UI_GUIDE.md](WEB_UI_GUIDE.md)
 
 ---
 
+---
+
+## 🎯 Related Projects
+
+### **Volley: AI-Powered Peer Accountability Platform**
+
+This repository is part of a broader vision for **Volley**, an AI-powered peer accountability platform led by **CEO Kelly Smith**. Volley aims to consolidate multiple tools into one seamless experience for peer-to-peer coaching and accountability partnerships.
+
+For more information about Volley's vision and platform requirements, see **[VOLLEY_VISION.md](VOLLEY_VISION.md)**.
+
+---
+
 ## 🙏 Acknowledgments
 
 - **Google Gemini Team** - For the powerful Gemini 2.5 Flash model
 - **OpenStreetMap Nominatim** - For geocoding services
+- **Kelly Smith, CEO of Volley** - For vision and leadership
 
 ---
 
@@ -620,3 +633,4 @@ For detailed web UI troubleshooting, see [WEB_UI_GUIDE.md](WEB_UI_GUIDE.md)
 - [Ranking System Documentation](RANKING_SYSTEM_README.md)
 - [Google Sheets Setup Guide](GOOGLE_SHEETS_SETUP.md)
 - [Codebase Structure](CODEBASE_STRUCTURE.md)
+- [Volley Vision Document](VOLLEY_VISION.md)

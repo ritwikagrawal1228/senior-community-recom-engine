@@ -1,6 +1,9 @@
 """
 Senior Living Community Recommendation System - Web Interface
 Simple Flask backend for UI interaction
+
+This system is part of Volley's broader vision for AI-powered solutions.
+Volley is led by CEO Kelly Smith.
 """
 
 import os
@@ -8,13 +11,19 @@ import json
 import sys
 from io import StringIO
 from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
+import base64
+import asyncio
+import threading
 
 from main_pipeline_ranking import RankingBasedRecommendationSystem
 from google_sheets_integration import push_to_crm
+from gemini_live_stream import GeminiLiveStream
 
 # Global variable to store logs
 current_logs = []
@@ -46,13 +55,50 @@ load_dotenv()
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Ensure upload folder exists
 os.makedirs('uploads', exist_ok=True)
 os.makedirs('output', exist_ok=True)
 
+# Language configurations
+SUPPORTED_LANGUAGES = {
+    'english': {
+        'name': 'English',
+        'code': 'en',
+        'gemini_language_code': 'en-US',
+        'instruction_suffix': ' Respond and listen only in English. Ignore any other languages spoken.'
+    },
+    'hindi': {
+        'name': 'Hindi',
+        'code': 'hi',
+        'gemini_language_code': 'hi-IN',
+        'instruction_suffix': ' Respond and listen only in Hindi. Ignore any other languages spoken.'
+    },
+    'spanish': {
+        'name': 'Spanish',
+        'code': 'es',
+        'gemini_language_code': 'es-ES',
+        'instruction_suffix': ' Respond and listen only in Spanish. Ignore any other languages spoken.'
+    }
+}
+
+# CORS configuration for Google Studio (and other frontends)
+allowed_origins_env = os.getenv('ALLOWED_ORIGINS', '*')
+if allowed_origins_env == '*':
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    allowed_origins = '*'
+else:
+    origins_list = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": origins_list}})
+    allowed_origins = origins_list
+
 # Initialize recommendation system
 recommendation_system = None
+active_live_sessions = {}  # Store active live streaming sessions
 
 def get_system():
     """Lazy-load the recommendation system"""
@@ -61,10 +107,228 @@ def get_system():
         recommendation_system = RankingBasedRecommendationSystem()
     return recommendation_system
 
+def get_live_system_instruction(language='english'):
+    """Get system instruction for live conversation based on language"""
+    base_instruction = """
+You are an AI assistant helping senior living consultants have natural conversations with potential clients.
+
+Your role:
+1. Ask relevant questions to understand client needs for senior living
+2. Gather information about: care level needed, budget, timeline, location preferences, special needs
+3. Be conversational and empathetic
+4. Keep responses concise but natural
+5. Focus on one topic at a time
+6. Use the updateDashboard function to show recommendations as you gather information
+
+Available tools:
+- updateDashboard: Update the consultant's dashboard with client info and recommendations
+
+IMPORTANT: Be conversational, not interrogative. Build rapport first.
+"""
+
+    language_config = SUPPORTED_LANGUAGES.get(language.lower(), SUPPORTED_LANGUAGES['english'])
+    
+    # Make language enforcement ABSOLUTE and strict
+    if language.lower() == 'english':
+        language_enforcement = """
+        
+CRITICAL LANGUAGE RULES - ABSOLUTE ENFORCEMENT:
+- You MUST ONLY process, transcribe, and respond in English (en-US)
+- DO NOT transcribe ANY non-English speech (Hindi, Spanish, etc.) - completely ignore it
+- DO NOT respond to non-English input - treat it as if nothing was said
+- If you detect non-English speech, DO NOT transcribe it - wait for English input
+- All transcriptions MUST be in English characters only
+- All your responses MUST be in English only
+- If the user speaks in another language, silently ignore it and wait for English speech
+- NEVER output Hindi, Spanish, or any other language characters - ONLY English
+- The input audio transcription language is set to en-US - respect this absolutely
+"""
+    else:
+        language_enforcement = language_config['instruction_suffix']
+    
+    return base_instruction + language_enforcement
+
+def get_live_tools():
+    """Get tools available for live conversation"""
+    return [
+        {
+            "function_declarations": [
+                {
+                    "name": "updateDashboard",
+                    "description": "Update the consultant dashboard with client information and community recommendations",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "client_info": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string"},
+                                    "care_level": {"type": "string", "enum": ["Independent Living", "Assisted Living", "Memory Care"]},
+                                    "budget": {"type": "number"},
+                                    "timeline": {"type": "string", "enum": ["immediate", "near-term", "flexible"]},
+                                    "location": {"type": "string"},
+                                    "special_needs": {"type": "string"}
+                                }
+                            },
+                            "community_recommendations": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "community_id": {"type": "number"},
+                                        "community_name": {"type": "string"},
+                                        "monthly_fee": {"type": "number"},
+                                        "distance_miles": {"type": "number"},
+                                        "match_score": {"type": "number"},
+                                        "reasoning": {"type": "string"}
+                                    }
+                                }
+                            }
+                        },
+                        "required": ["client_info"]
+                    }
+                }
+            ]
+        }
+    ]
+
+# SocketIO event handlers for live streaming
+@socketio.on('start_live_session')
+def handle_start_live_session(data):
+    """Start a new live conversation session"""
+    try:
+        language = data.get('language', 'english').lower()
+        if language not in SUPPORTED_LANGUAGES:
+            language = 'english'
+
+        session_id = data.get('session_id', 'default')
+
+        # Create system instruction with language constraint
+        system_instruction = get_live_system_instruction(language)
+        tools = get_live_tools()
+        language_config = SUPPORTED_LANGUAGES.get(language, SUPPORTED_LANGUAGES['english'])
+
+        # Initialize live stream
+        live_stream = GeminiLiveStream(system_instruction, lambda msg: handle_live_message(session_id, msg), language_config)
+
+        # Store session
+        active_live_sessions[session_id] = {
+            'live_stream': live_stream,
+            'language': language,
+            'system_instruction': system_instruction
+        }
+
+        # Start the session in a background thread
+        def start_session():
+            asyncio.run(live_stream.start())
+
+        thread = threading.Thread(target=start_session, daemon=True)
+        thread.start()
+
+        emit('session_started', {
+            'session_id': session_id,
+            'language': language,
+            'status': 'started'
+        })
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to start session: {str(e)}'})
+
+@socketio.on('send_audio')
+def handle_send_audio(data):
+    """Handle incoming audio data"""
+    try:
+        session_id = data.get('session_id', 'default')
+        audio_base64 = data.get('audio')
+        end_of_turn = data.get('end_of_turn', False)
+
+        if session_id not in active_live_sessions:
+            emit('error', {'message': 'Session not found'})
+            return
+
+        session = active_live_sessions[session_id]
+        live_stream = session['live_stream']
+
+        # Send audio to Gemini in background
+        def send_audio_async():
+            asyncio.run(live_stream.send_audio(audio_base64, end_of_turn=end_of_turn))
+
+        thread = threading.Thread(target=send_audio_async, daemon=True)
+        thread.start()
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to send audio: {str(e)}'})
+
+@socketio.on('send_tool_response')
+def handle_tool_response(data):
+    """Handle tool function responses"""
+    try:
+        session_id = data.get('session_id', 'default')
+        function_id = data.get('function_id')
+        response = data.get('response')
+
+        if session_id not in active_live_sessions:
+            emit('error', {'message': 'Session not found'})
+            return
+
+        session = active_live_sessions[session_id]
+        live_stream = session['live_stream']
+
+        # Send tool response in background
+        def send_tool_response_async():
+            asyncio.run(live_stream.send_tool_response(function_id, response))
+
+        thread = threading.Thread(target=send_tool_response_async, daemon=True)
+        thread.start()
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to send tool response: {str(e)}'})
+
+@socketio.on('stop_live_session')
+def handle_stop_live_session(data):
+    """Stop a live conversation session"""
+    try:
+        session_id = data.get('session_id', 'default')
+
+        if session_id in active_live_sessions:
+            session = active_live_sessions[session_id]
+            live_stream = session['live_stream']
+
+            # Stop the session
+            def stop_session():
+                asyncio.run(live_stream.stop())
+
+            thread = threading.Thread(target=stop_session, daemon=True)
+            thread.start()
+
+            # Remove from active sessions
+            del active_live_sessions[session_id]
+
+        emit('session_stopped', {'session_id': session_id})
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to stop session: {str(e)}'})
+
+def handle_live_message(session_id, message):
+    """Handle messages from Gemini live stream"""
+    try:
+        # Forward message to client
+        socketio.emit('live_message', {
+            'session_id': session_id,
+            'message': message
+        })
+    except Exception as e:
+        print(f"Error handling live message: {e}")
+
 @app.route('/')
 def index():
     """Serve the main UI"""
-    return render_template('index.html')
+    response = app.make_response(render_template('index.html'))
+    # Prevent caching of HTML
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -72,8 +336,21 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'gemini_configured': bool(os.getenv('GEMINI_API_KEY')),
-        'sheets_configured': bool(os.getenv('GOOGLE_SPREADSHEET_ID'))
+        'sheets_configured': bool(os.getenv('GOOGLE_SPREADSHEET_ID')),
+        'allowed_origins': allowed_origins_env
     })
+
+# Optional API key auth for /api/* endpoints (excluding /api/health)
+API_KEY = os.getenv('API_KEY')
+
+@app.before_request
+def enforce_api_key():
+    path = request.path or ''
+    if path.startswith('/api/') and path != '/api/health':
+        if API_KEY:
+            provided = request.headers.get('X-API-Key')
+            if provided != API_KEY:
+                return jsonify({'error': 'Unauthorized'}), 401
 
 @app.route('/api/process-audio', methods=['POST'])
 def process_audio():
@@ -94,6 +371,11 @@ def process_audio():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
 
+        # Get language parameter (default to English)
+        language = request.form.get('language', 'english').lower()
+        if language not in SUPPORTED_LANGUAGES:
+            language = 'english'
+
         # Save uploaded file
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -103,7 +385,7 @@ def process_audio():
 
         # Process the audio file
         system = get_system()
-        result = system.process_audio_file(filepath)
+        result = system.process_audio_file(filepath, language)
 
         # Push to CRM if enabled
         push_to_sheets = request.form.get('push_to_crm', 'true').lower() == 'true'
@@ -120,7 +402,8 @@ def process_audio():
             result['crm_pushed'] = True
             result['consultation_id'] = crm_result['consultation_id']
 
-        # Add logs to result
+        # Add language and logs to result
+        result['language'] = language
         result['logs'] = log_capture.logs
 
         return jsonify(result)
@@ -144,6 +427,10 @@ def process_text():
     try:
         data = request.get_json()
         text = data.get('text', '')
+        language = data.get('language', 'english').lower()
+
+        if language not in SUPPORTED_LANGUAGES:
+            language = 'english'
 
         if not text:
             return jsonify({'error': 'No text provided'}), 400
@@ -167,7 +454,8 @@ def process_text():
             result['crm_pushed'] = True
             result['consultation_id'] = crm_result['consultation_id']
 
-        # Add logs to result
+        # Add language and logs to result
+        result['language'] = language
         result['logs'] = log_capture.logs
 
         return jsonify(result)
@@ -341,9 +629,9 @@ if __name__ == '__main__':
     print("\n" + "="*80)
     print("SENIOR LIVING RECOMMENDATION SYSTEM - WEB INTERFACE")
     print("="*80)
-    print("\nStarting server...")
-    print("Open your browser to: http://localhost:5000")
+    print("\nStarting server with SocketIO support...")
+    print("Open your browser to: http://localhost:5050")
     print("\nPress Ctrl+C to stop the server")
     print("="*80 + "\n")
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=False, host='0.0.0.0', port=5050, allow_unsafe_werkzeug=True)

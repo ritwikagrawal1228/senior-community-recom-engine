@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAudioUpload();
     initializeConsultationForms();
     initializeDatabaseSearch();
+    initializeLiveSession();
     checkSystemHealth();
 });
 
@@ -173,10 +174,12 @@ async function processAudioConsultation() {
     if (!selectedFile) return;
 
     const pushToCRM = document.getElementById('push-to-crm-audio').checked;
+    const language = document.getElementById('language-select-consultation').value;
 
     const formData = new FormData();
     formData.append('audio', selectedFile);
     formData.append('push_to_crm', pushToCRM);
+    formData.append('language', language);
 
     showLoading('Processing audio consultation...');
 
@@ -221,6 +224,7 @@ async function processTextConsultation() {
     }
 
     const pushToCRM = document.getElementById('push-to-crm-text').checked;
+    const language = document.getElementById('language-select-consultation').value;
 
     showLoading('Processing text consultation...');
 
@@ -232,7 +236,8 @@ async function processTextConsultation() {
             },
             body: JSON.stringify({
                 text: text,
-                push_to_crm: pushToCRM
+                push_to_crm: pushToCRM,
+                language: language
             })
         });
 
@@ -688,4 +693,411 @@ function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// ========================================
+// Live Session
+// ========================================
+
+let socket = null;
+let liveSessionActive = false;
+let mediaRecorder = null;
+let audioContext = null;
+let audioStream = null;
+let sessionId = null;
+let audioBuffer = [];
+let silenceStartTime = null;
+let isUserSpeaking = false;
+let silenceThreshold = 0.01; // Minimum audio level to consider as speech
+let silenceDuration = 500; // ms of silence before considering turn ended
+let audioBufferTimeout = null;
+
+function initializeLiveSession() {
+    // Initialize Socket.IO connection
+    socket = io();
+
+    // Socket event handlers
+    socket.on('connect', () => {
+        console.log('Connected to server');
+    });
+
+    socket.on('session_started', (data) => {
+        console.log('Session started:', data);
+        sessionId = data.session_id;
+        updateSessionStatus('active', 'Session active');
+        document.getElementById('start-session-btn').style.display = 'none';
+        document.getElementById('stop-session-btn').style.display = 'inline-flex';
+        document.getElementById('audio-visualization').style.display = 'block';
+        startAudioCapture();
+    });
+
+    socket.on('session_stopped', (data) => {
+        console.log('Session stopped:', data);
+        stopLiveSession();
+    });
+
+    socket.on('live_message', (data) => {
+        handleLiveMessage(data);
+    });
+
+    socket.on('error', (data) => {
+        showError(data.message || 'An error occurred');
+        stopLiveSession();
+    });
+
+    // Button handlers
+    document.getElementById('start-session-btn').addEventListener('click', startLiveSession);
+    document.getElementById('stop-session-btn').addEventListener('click', stopLiveSession);
+}
+
+function startLiveSession() {
+    if (liveSessionActive) return;
+
+    const language = document.getElementById('language-select-live').value;
+    sessionId = 'session_' + Date.now();
+
+    // Request microphone permission and start session
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((stream) => {
+            audioStream = stream;
+            socket.emit('start_live_session', {
+                session_id: sessionId,
+                language: language
+            });
+        })
+        .catch((error) => {
+            showError('Microphone access denied. Please allow microphone access to use live sessions.');
+            console.error('Microphone error:', error);
+        });
+}
+
+function stopLiveSession() {
+    if (!liveSessionActive && !sessionId) return;
+
+    // Clear any pending timeouts
+    if (audioBufferTimeout) {
+        clearTimeout(audioBufferTimeout);
+        audioBufferTimeout = null;
+    }
+
+    if (sessionId) {
+        socket.emit('stop_live_session', { session_id: sessionId });
+    }
+
+    // Stop audio capture
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
+    if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+        audioStream = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+
+    // Reset state
+    liveSessionActive = false;
+    sessionId = null;
+    audioBuffer = [];
+    silenceStartTime = null;
+    isUserSpeaking = false;
+    
+    updateSessionStatus('inactive', 'Ready to start');
+    document.getElementById('start-session-btn').style.display = 'inline-flex';
+    document.getElementById('stop-session-btn').style.display = 'none';
+    document.getElementById('audio-visualization').style.display = 'none';
+}
+
+function startAudioCapture() {
+    if (!audioStream) return;
+
+    try {
+        // Reset state
+        audioBuffer = [];
+        silenceStartTime = null;
+        isUserSpeaking = false;
+        
+        // Create audio context - note: sampleRate option may not be supported in all browsers
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(audioStream);
+        
+        // Use ScriptProcessorNode for audio processing
+        // Buffer size: 4096 samples, 1 input channel, 1 output channel
+        const processor = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        // Track if we need to resample
+        const targetSampleRate = 16000;
+        const sourceSampleRate = audioContext.sampleRate;
+        const needsResampling = sourceSampleRate !== targetSampleRate;
+        
+        // Helper function to convert array buffer to base64
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            const chunkSize = 8192; // Process in chunks to avoid stack overflow
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                binary += String.fromCharCode.apply(null, chunk);
+            }
+            return btoa(binary);
+        }
+        
+        // Simple resampling function (linear interpolation)
+        function resampleAudio(inputData, fromRate, toRate) {
+            if (fromRate === toRate) return inputData;
+            
+            const ratio = fromRate / toRate;
+            const outputLength = Math.round(inputData.length / ratio);
+            const output = new Float32Array(outputLength);
+            
+            for (let i = 0; i < outputLength; i++) {
+                const index = i * ratio;
+                const indexFloor = Math.floor(index);
+                const indexCeil = Math.min(indexFloor + 1, inputData.length - 1);
+                const fraction = index - indexFloor;
+                
+                output[i] = inputData[indexFloor] * (1 - fraction) + inputData[indexCeil] * fraction;
+            }
+            
+            return output;
+        }
+        
+        // Calculate RMS (Root Mean Square) for voice activity detection
+        function calculateRMS(data) {
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+                sum += data[i] * data[i];
+            }
+            return Math.sqrt(sum / data.length);
+        }
+        
+        // Normalize audio to improve transcription quality
+        function normalizeAudio(data) {
+            // Find peak amplitude
+            let maxAmplitude = 0;
+            for (let i = 0; i < data.length; i++) {
+                const abs = Math.abs(data[i]);
+                if (abs > maxAmplitude) {
+                    maxAmplitude = abs;
+                }
+            }
+            
+            // Normalize if peak is too low (amplify) or too high (reduce)
+            if (maxAmplitude > 0 && maxAmplitude < 0.5) {
+                // Amplify quiet audio
+                const gain = 0.7 / maxAmplitude; // Target 70% of max
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.max(-1, Math.min(1, data[i] * gain));
+                }
+            } else if (maxAmplitude > 0.95) {
+                // Reduce clipping
+                const gain = 0.9 / maxAmplitude;
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = data[i] * gain;
+                }
+            }
+            
+            return data;
+        }
+        
+        // Send buffered audio
+        function sendBufferedAudio(endOfTurn = false) {
+            if (audioBuffer.length === 0) return;
+            
+            // Combine all buffered chunks
+            const totalLength = audioBuffer.reduce((sum, chunk) => sum + chunk.length, 0);
+            const combined = new Int16Array(totalLength);
+            let offset = 0;
+            for (const chunk of audioBuffer) {
+                combined.set(chunk, offset);
+                offset += chunk.length;
+            }
+            
+            // Convert to base64
+            const base64 = arrayBufferToBase64(combined.buffer);
+            
+            // Send to server
+            socket.emit('send_audio', {
+                session_id: sessionId,
+                audio: base64,
+                end_of_turn: endOfTurn
+            });
+            
+            // Clear buffer
+            audioBuffer = [];
+        }
+
+        processor.onaudioprocess = (e) => {
+            if (!liveSessionActive || !sessionId) return;
+
+            try {
+                let inputData = e.inputBuffer.getChannelData(0);
+                
+                // Calculate RMS to detect voice activity
+                const rms = calculateRMS(inputData);
+                const hasVoice = rms > silenceThreshold;
+                
+                const now = Date.now();
+                
+                if (hasVoice) {
+                    // User is speaking
+                    if (!isUserSpeaking) {
+                        isUserSpeaking = true;
+                        silenceStartTime = null;
+                        // Clear any pending silence timeout
+                        if (audioBufferTimeout) {
+                            clearTimeout(audioBufferTimeout);
+                            audioBufferTimeout = null;
+                        }
+                    }
+                    
+                    // Normalize audio to improve quality
+                    inputData = normalizeAudio(inputData);
+                    
+                    // Resample if needed
+                    if (needsResampling) {
+                        inputData = resampleAudio(inputData, sourceSampleRate, targetSampleRate);
+                    }
+                    
+                    // Convert float32 (-1 to 1) to int16 (-32768 to 32767)
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        const sample = Math.max(-1, Math.min(1, inputData[i]));
+                        // Convert to 16-bit PCM (little-endian)
+                        pcmData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    }
+                    
+                    // Add to buffer
+                    audioBuffer.push(pcmData);
+                    
+                    // Send buffered audio periodically while speaking (every ~200ms)
+                    if (audioBuffer.length >= 5) { // ~200ms of audio at 16kHz
+                        sendBufferedAudio(false);
+                    }
+                } else {
+                    // Silence detected
+                    if (isUserSpeaking) {
+                        // User just stopped speaking
+                        if (silenceStartTime === null) {
+                            silenceStartTime = now;
+                        }
+                        
+                        // If silence continues for threshold duration, end turn
+                        if (now - silenceStartTime >= silenceDuration) {
+                            isUserSpeaking = false;
+                            
+                            // Send any remaining buffered audio with end_of_turn
+                            if (audioBuffer.length > 0) {
+                                sendBufferedAudio(true);
+                            }
+                            
+                            silenceStartTime = null;
+                        } else {
+                            // Still in silence period, buffer small amount of silence
+                            if (needsResampling) {
+                                inputData = resampleAudio(inputData, sourceSampleRate, targetSampleRate);
+                            }
+                            
+                            const pcmData = new Int16Array(inputData.length);
+                            for (let i = 0; i < inputData.length; i++) {
+                                const sample = Math.max(-1, Math.min(1, inputData[i]));
+                                pcmData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                            }
+                            
+                            // Only buffer a small amount of silence
+                            if (audioBuffer.length < 2) {
+                                audioBuffer.push(pcmData);
+                            }
+                        }
+                    }
+                    // If not speaking, ignore silence completely
+                }
+            } catch (error) {
+                console.error('Error processing audio chunk:', error);
+            }
+        };
+
+        source.connect(processor);
+        processor.connect(audioContext.destination);
+        liveSessionActive = true;
+        
+        console.log(`Audio capture started. Source sample rate: ${sourceSampleRate}Hz, Target: ${targetSampleRate}Hz, Resampling: ${needsResampling}`);
+        console.log(`Voice Activity Detection: Threshold=${silenceThreshold}, Silence duration=${silenceDuration}ms`);
+    } catch (error) {
+        console.error('Audio capture error:', error);
+        showError('Failed to start audio capture: ' + error.message);
+    }
+}
+
+function handleLiveMessage(data) {
+    if (data.session_id !== sessionId) return;
+
+    const transcriptionBox = document.getElementById('transcription-box');
+    const placeholder = transcriptionBox.querySelector('.transcription-placeholder');
+    
+    if (placeholder) {
+        placeholder.remove();
+    }
+
+    let messageDiv = document.createElement('div');
+    messageDiv.className = 'transcription-message';
+
+    const msg = data.message || data;
+    if (msg.type === 'user_transcript') {
+        // STRICT FILTER: Block any non-English characters client-side as well
+        const transcriptText = msg.text || '';
+        
+        // Check for non-ASCII characters (Hindi, Spanish accents, etc.)
+        if (/[^\x00-\x7F]/.test(transcriptText)) {
+            console.warn('[LANGUAGE FILTER] Blocked non-English transcription:', transcriptText.substring(0, 50));
+            // Don't display non-English transcriptions
+            return;
+        }
+        
+        messageDiv.classList.add('user-message');
+        messageDiv.innerHTML = `
+            <div class="message-label">You:</div>
+            <div class="message-text">${escapeHtml(transcriptText)}</div>
+        `;
+    } else if (msg.type === 'model_transcript') {
+        messageDiv.classList.add('ai-message');
+        messageDiv.innerHTML = `
+            <div class="message-label">AI:</div>
+            <div class="message-text">${escapeHtml(msg.text || '')}</div>
+        `;
+    } else if (msg.type === 'error') {
+        messageDiv.classList.add('error-message');
+        messageDiv.innerHTML = `
+            <div class="message-label">Error:</div>
+            <div class="message-text">${escapeHtml(msg.message || '')}</div>
+        `;
+    } else if (msg.type === 'function_call') {
+        // Handle function calls silently for now
+        return;
+    } else {
+        // Fallback for any other message format
+        messageDiv.classList.add('info-message');
+        messageDiv.innerHTML = `
+            <div class="message-text">${escapeHtml(JSON.stringify(msg))}</div>
+        `;
+    }
+
+    transcriptionBox.appendChild(messageDiv);
+    transcriptionBox.scrollTop = transcriptionBox.scrollHeight;
+}
+
+function updateSessionStatus(status, text) {
+    const indicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    
+    indicator.className = 'status-indicator ' + status;
+    statusText.textContent = text;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

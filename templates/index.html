@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Senior Living Recommendation System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=7">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -23,6 +24,13 @@
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
                     New Consultation
+                </a>
+                <a href="#" class="nav-link" data-view="live">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M23 7l-7 5 7 5V7z"></path>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    Live Session
                 </a>
                 <a href="#" class="nav-link" data-view="database">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -51,6 +59,24 @@
             <div class="view-header">
                 <h1>New Client Consultation</h1>
                 <p class="subtitle">Process audio recordings or text consultations to get AI-powered community recommendations</p>
+            </div>
+
+            <!-- Language Selection -->
+            <div class="language-selector">
+                <label for="language-select-consultation">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    Select Language:
+                </label>
+                <select id="language-select-consultation" class="language-dropdown">
+                    <option value="english">🇺🇸 English</option>
+                    <option value="hindi">🇮🇳 Hindi</option>
+                    <option value="spanish">🇪🇸 Spanish</option>
+                </select>
+                <small class="language-note">Language selection applies to audio processing and AI responses</small>
             </div>
 
             <!-- Input Method Tabs -->
@@ -172,6 +198,87 @@ Client: She lives in Rochester, ZIP 14618."
                 <div id="client-info" class="card info-card"></div>
                 <div id="recommendations" class="recommendations-grid"></div>
                 <div id="metrics-info" class="card metrics-card"></div>
+            </div>
+        </div>
+
+        <!-- Live Session View -->
+        <div id="live-view" class="view">
+            <div class="view-header">
+                <h1>Live Conversation Session</h1>
+                <p class="subtitle">Have a real-time conversation with AI to gather client information</p>
+            </div>
+
+            <!-- Language Selection for Live Session -->
+            <div class="language-selector">
+                <label for="language-select-live">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    Select Language:
+                </label>
+                <select id="language-select-live" class="language-dropdown">
+                    <option value="english">🇺🇸 English</option>
+                    <option value="hindi">🇮🇳 Hindi</option>
+                    <option value="spanish">🇪🇸 Spanish</option>
+                </select>
+                <small class="language-note">Both you and the AI will communicate in the selected language</small>
+            </div>
+
+            <!-- Speech-to-Text Interface -->
+            <div class="card speech-interface">
+                <div class="speech-header">
+                    <h3>Voice Conversation</h3>
+                    <div class="session-status" id="session-status">
+                        <span class="status-indicator" id="status-indicator"></span>
+                        <span id="status-text">Ready to start</span>
+                    </div>
+                </div>
+
+                <!-- Transcription Display -->
+                <div class="transcription-container">
+                    <div class="transcription-box" id="transcription-box">
+                        <div class="transcription-placeholder">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                            <p>Your conversation transcript will appear here</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="speech-controls">
+                    <button class="btn btn-primary btn-record" id="start-session-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Start Session
+                    </button>
+                    <button class="btn btn-secondary btn-record" id="stop-session-btn" style="display:none;">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                        </svg>
+                        End Session
+                    </button>
+                </div>
+
+                <!-- Audio Visualization -->
+                <div class="audio-visualization" id="audio-visualization" style="display:none;">
+                    <div class="audio-bars">
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                    </div>
+                    <p class="listening-text">Listening...</p>
+                </div>
             </div>
         </div>
 
@@ -298,12 +405,13 @@ Client: She lives in Rochester, ZIP 14618."
                     </div>
 
                     <div class="card">
-                        <h3>3. CRM Integration</h3>
-                        <p>Results are automatically pushed to Google Sheets CRM (if configured) with three sheets:</p>
+                        <h3>3. Live Conversation Sessions</h3>
+                        <p>Use the Live Session feature to have real-time conversations with AI:</p>
                         <ul>
-                            <li><strong>Client Consultations:</strong> Overview of each consultation</li>
-                            <li><strong>Recommendations Detail:</strong> All 5 recommendations with full details</li>
-                            <li><strong>Performance Analytics:</strong> Processing metrics and costs</li>
+                            <li>Select your preferred language (English, Hindi, or Spanish)</li>
+                            <li>Start a session and speak naturally</li>
+                            <li>AI will respond in the same language</li>
+                            <li>View real-time transcription of the conversation</li>
                         </ul>
                     </div>
                 </div>
@@ -339,95 +447,16 @@ Client: She lives in Rochester, ZIP 14618."
                 </div>
 
                 <div class="help-section">
-                    <h2>📊 Understanding Results</h2>
+                    <h2>🌐 Language Support</h2>
                     <div class="card">
-                        <h3>Recommendation Cards</h3>
-                        <p>Each recommendation shows:</p>
+                        <h3>Supported Languages</h3>
+                        <p>The system supports three languages:</p>
                         <ul>
-                            <li><strong>Rank:</strong> 1-5, with 1 being the best match</li>
-                            <li><strong>Combined Score:</strong> Lower is better (weighted Borda count)</li>
-                            <li><strong>Monthly Fee:</strong> Base monthly cost</li>
-                            <li><strong>Distance:</strong> Miles from preferred location</li>
-                            <li><strong>Availability:</strong> Waitlist status</li>
-                            <li><strong>AI Reasoning:</strong> Why this community is recommended</li>
+                            <li><strong>English:</strong> Full support for audio processing and live conversations</li>
+                            <li><strong>Hindi:</strong> Full support for audio processing and live conversations</li>
+                            <li><strong>Spanish:</strong> Full support for audio processing and live conversations</li>
                         </ul>
-
-                        <h3>Performance Metrics</h3>
-                        <ul>
-                            <li><strong>Processing Time:</strong> Total time to generate recommendations</li>
-                            <li><strong>Token Usage:</strong> API tokens consumed (audio input, text input, output)</li>
-                            <li><strong>Cost:</strong> Estimated API cost based on Gemini 2.5 Flash pricing</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="help-section">
-                    <h2>💡 Tips & Best Practices</h2>
-                    <div class="card">
-                        <h3>Audio Recording Tips</h3>
-                        <ul>
-                            <li>Ensure clear audio quality</li>
-                            <li>Speak clearly and include all relevant details</li>
-                            <li>Mention budget, timeline, and location explicitly</li>
-                            <li>Supported formats: M4A, MP3, WAV, OGG</li>
-                        </ul>
-
-                        <h3>Text Consultation Tips</h3>
-                        <ul>
-                            <li>Include conversation format (Agent: / Client:)</li>
-                            <li>Be specific about requirements</li>
-                            <li>Mention ZIP code or city name</li>
-                            <li>State timeline clearly (immediate = <1 month, near-term = 1-3 months)</li>
-                        </ul>
-
-                        <h3>Database Management Tips</h3>
-                        <ul>
-                            <li>Keep monthly fees up-to-date for accurate recommendations</li>
-                            <li>Update waitlist status regularly</li>
-                            <li>Use consistent ZIP code formatting (5 digits)</li>
-                            <li>Fill in all important fields for better AI matching</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="help-section">
-                    <h2>⚙️ System Requirements</h2>
-                    <div class="card">
-                        <h3>Browser Compatibility</h3>
-                        <p>Works best on modern browsers:</p>
-                        <ul>
-                            <li>Chrome 90+</li>
-                            <li>Firefox 88+</li>
-                            <li>Safari 14+</li>
-                            <li>Edge 90+</li>
-                        </ul>
-
-                        <h3>API Configuration</h3>
-                        <p>Required environment variables:</p>
-                        <ul>
-                            <li><strong>GEMINI_API_KEY:</strong> Google Gemini API key (required)</li>
-                            <li><strong>GOOGLE_SPREADSHEET_ID:</strong> Google Sheets ID (optional for CRM)</li>
-                            <li><strong>GOOGLE_SERVICE_ACCOUNT_FILE:</strong> Service account JSON (optional for CRM)</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="help-section">
-                    <h2>❓ Troubleshooting</h2>
-                    <div class="card">
-                        <h3>Common Issues</h3>
-
-                        <h4>Audio processing fails</h4>
-                        <p><strong>Solution:</strong> Check file format (must be M4A, MP3, WAV, or OGG) and file size (max 50MB). Ensure audio is clear and not corrupted.</p>
-
-                        <h4>"Not ranked by AI" appears in results</h4>
-                        <p><strong>Solution:</strong> This means the AI ranking timed out. The system uses a fallback algorithm. Results are still valid but less detailed. This usually happens due to API rate limits.</p>
-
-                        <h4>CRM push fails</h4>
-                        <p><strong>Solution:</strong> Verify Google Sheets credentials are configured correctly in .env file and that the spreadsheet is shared with the service account.</p>
-
-                        <h4>Database changes don't reflect</h4>
-                        <p><strong>Solution:</strong> Refresh the page after making database changes. The system reloads the data automatically.</p>
+                        <p>Select your language before starting a consultation or live session. The AI will process and respond in the selected language.</p>
                     </div>
                 </div>
             </div>
@@ -568,6 +597,6 @@ Client: She lives in Rochester, ZIP 14618."
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=7"></script>
 </body>
 </html>

@@ -349,9 +349,12 @@ class BudgetEfficiencyRanker(RankingDimension):
 
         for idx, row in communities.iterrows():
             monthly_fee = self._parse_numeric(row.get('Monthly Fee', 0))
-            budget_ratio = (monthly_fee / client_req.budget) * 100 if client_req.budget > 0 else 100
+            # Ensure budget is a numeric value
+            numeric_budget = self._parse_numeric(getattr(client_req, 'budget', 0), 0.0)
+            budget_ratio = (monthly_fee / numeric_budget) * 100 if numeric_budget > 0 else 100
 
-            reason = f"${monthly_fee:,.0f}/mo is {budget_ratio:.1f}% of ${client_req.budget:,.0f} budget"
+            budget_str = f"${numeric_budget:,.0f}" if numeric_budget > 0 else "N/A"
+            reason = f"${monthly_fee:,.0f}/mo is {budget_ratio:.1f}% of {budget_str} budget"
 
             results.append(RankResult(
                 dimension_name=self.name,
@@ -766,9 +769,10 @@ class HolisticRanker(GeminiRanker):
                 'amenity_rank': comm['previous_ranks'].get('Amenity & Lifestyle Match', {}).get('rank', 'N/A')
             })
 
+        budget_str = f"${client_req.budget:,.0f}" if client_req.budget else "N/A"
         prompt = f"""Holistic ranking of {len(simplified_data)} senior living communities.
 
-CLIENT: {client_req.care_level}, ${client_req.budget:,.0f}/mo budget, {client_req.timeline} timeline
+CLIENT: {client_req.care_level}, {budget_str}/mo budget, {client_req.timeline} timeline
 
 COMMUNITIES (id, monthly_fee, distance_miles, waitlist, previous_ranks):
 {json.dumps(simplified_data, indent=1)}

@@ -37,13 +37,14 @@ class GeminiAudioProcessor:
 
         print("[INFO] Gemini 2.5 Flash initialized")
 
-    def process_audio_file(self, audio_path: str) -> Dict[str, Any]:
+    def process_audio_file(self, audio_path: str, language: str = 'english') -> Dict[str, Any]:
         """
         Process audio file and extract client requirements
         Gemini 2.5 Flash can handle audio directly
 
         Args:
             audio_path: Path to audio file (mp3, wav, m4a, etc.)
+            language: Language constraint ('english', 'hindi', 'spanish')
 
         Returns:
             Dict with structured client requirements
@@ -56,13 +57,30 @@ class GeminiAudioProcessor:
 
         try:
             # Upload audio file to Gemini using new client API
-            print("[STEP 1/2] Uploading audio file...")
+            print("[STEP 1/3] Uploading audio file...")
             audio_file = self.client.files.upload(file=audio_path)
             print(f"[SUCCESS] Audio uploaded: {audio_file.name}")
 
+            # Wait for file to become ACTIVE
+            print("[STEP 2/3] Waiting for file to be ready...")
+            import time
+            max_wait = 30  # seconds
+            waited = 0
+            while audio_file.state.name != 'ACTIVE' and waited < max_wait:
+                time.sleep(1)
+                waited += 1
+                audio_file = self.client.files.get(name=audio_file.name)
+                if waited % 5 == 0:
+                    print(f"  ... still waiting ({waited}s)")
+            
+            if audio_file.state.name != 'ACTIVE':
+                raise RuntimeError(f"File did not become ACTIVE after {max_wait}s (state: {audio_file.state.name})")
+            
+            print(f"[SUCCESS] File is ready (state: {audio_file.state.name})")
+
             # Generate content with audio + extraction prompt
-            print("[STEP 2/2] Extracting client requirements...")
-            extraction_prompt = self._create_extraction_prompt()
+            print("[STEP 3/3] Extracting client requirements...")
+            extraction_prompt = self._create_extraction_prompt(language)
 
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -74,6 +92,19 @@ class GeminiAudioProcessor:
             )
 
             result_text = response.text
+            print(f"[DEBUG] Raw response: {result_text[:500]}")
+            
+            # Clean up markdown code blocks if present
+            if result_text.strip().startswith('```'):
+                result_text = result_text.strip()
+                if result_text.startswith('```json'):
+                    result_text = result_text[7:]
+                elif result_text.startswith('```'):
+                    result_text = result_text[3:]
+                if result_text.endswith('```'):
+                    result_text = result_text[:-3]
+                result_text = result_text.strip()
+            
             parsed = json.loads(result_text)
 
             # Handle if Gemini returns a list instead of dict
@@ -131,10 +162,18 @@ class GeminiAudioProcessor:
             print(f"[ERROR] Failed to process text: {str(e)}")
             raise
 
-    def _create_extraction_prompt(self) -> str:
+    def _create_extraction_prompt(self, language: str = 'english') -> str:
         """Create the extraction prompt for Gemini"""
-        return """
-You are analyzing a senior living client intake conversation (either audio or text).
+        language_instruction = ""
+        if language.lower() == 'english':
+            language_instruction = "\nLANGUAGE CONSTRAINT: Only process and respond in English. Ignore any other languages spoken in the conversation."
+        elif language.lower() == 'hindi':
+            language_instruction = "\nLANGUAGE CONSTRAINT: Only process and respond in Hindi. Ignore any other languages spoken in the conversation."
+        elif language.lower() == 'spanish':
+            language_instruction = "\nLANGUAGE CONSTRAINT: Only process and respond in Spanish. Ignore any other languages spoken in the conversation."
+
+        return f"""
+You are analyzing a senior living client intake conversation (either audio or text).{language_instruction}
 Extract the following information and return it as JSON:
 
 {

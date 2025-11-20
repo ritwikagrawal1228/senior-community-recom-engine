@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senior Living Recommendation System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span class="logo-text">Senior Living Recommendations</span>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" data-view="consultation">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    New Consultation
+                </a>
+                <a href="#" class="nav-link" data-view="database">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    Community Database
+                </a>
+                <a href="#" class="nav-link" data-view="help">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    Help
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Consultation View -->
+        <div id="consultation-view" class="view active">
+            <div class="view-header">
+                <h1>New Client Consultation</h1>
+                <p class="subtitle">Process audio recordings or text consultations to get AI-powered community recommendations</p>
+            </div>
+
+            <!-- Input Method Tabs -->
+            <div class="tabs">
+                <button class="tab active" data-tab="audio">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                    Audio Recording
+                </button>
+                <button class="tab" data-tab="text">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 7h16M4 12h16M4 17h10"></path>
+                    </svg>
+                    Text Consultation
+                </button>
+            </div>
+
+            <!-- Audio Upload Tab -->
+            <div id="audio-tab" class="tab-content active">
+                <div class="card">
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="audio-file" accept=".m4a,.mp3,.wav,.ogg" hidden>
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <h3>Drop audio file here or click to browse</h3>
+                        <p>Supported formats: M4A, MP3, WAV, OGG (Max 50MB)</p>
+                        <button class="btn btn-secondary" onclick="document.getElementById('audio-file').click()">
+                            Select File
+                        </button>
+                    </div>
+                    <div id="file-preview" class="file-preview" style="display:none;">
+                        <div class="file-info">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M9 18V5l12-2v13M6 15h3M6 19h3M9 15v4M15 15h3M15 19h3M15 15v4"></path>
+                            </svg>
+                            <div class="file-details">
+                                <span id="file-name" class="file-name"></span>
+                                <span id="file-size" class="file-size"></span>
+                            </div>
+                            <button class="btn-icon" onclick="clearAudioFile()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="push-to-crm-audio" checked>
+                        <span>Push results to Google Sheets CRM</span>
+                    </label>
+                    <button class="btn btn-primary" id="process-audio-btn" disabled>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Process Audio Consultation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Input Tab -->
+            <div id="text-tab" class="tab-content">
+                <div class="card">
+                    <label for="text-input" class="form-label">Consultation Transcript</label>
+                    <textarea
+                        id="text-input"
+                        class="form-textarea"
+                        rows="12"
+                        placeholder="Paste or type the consultation transcript here...
+
+Example:
+Client: Hi, I'm looking for assisted living for my mother.
+Agent: What's your budget range?
+Client: Around $5,000 per month.
+Agent: And when are you looking to move?
+Client: Within the next 2-3 months.
+Agent: What area are you looking at?
+Client: She lives in Rochester, ZIP 14618."
+                    ></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="push-to-crm-text" checked>
+                        <span>Push results to Google Sheets CRM</span>
+                    </label>
+                    <button class="btn btn-primary" id="process-text-btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Process Text Consultation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-section" class="results-section" style="display:none;">
+                <div class="results-header">
+                    <h2>Recommendations</h2>
+                    <button class="btn btn-secondary" onclick="clearResults()">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                        New Consultation
+                    </button>
+                </div>
+
+                <div id="client-info" class="card info-card"></div>
+                <div id="recommendations" class="recommendations-grid"></div>
+                <div id="metrics-info" class="card metrics-card"></div>
+            </div>
+        </div>
+
+        <!-- Database View -->
+        <div id="database-view" class="view">
+            <div class="view-header">
+                <h1>Community Database</h1>
+                <p class="subtitle">Manage your senior living community listings</p>
+            </div>
+
+            <!-- Database Stats -->
+            <div id="db-stats" class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Communities</div>
+                        <div class="stat-value" id="stat-total">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Avg Monthly Fee</div>
+                        <div class="stat-value" id="stat-fee">-</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Enhanced Services</div>
+                        <div class="stat-value" id="stat-enhanced">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Controls -->
+            <div class="db-controls">
+                <div class="search-box">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="search-communities" placeholder="Search communities by ID, name, care level, ZIP...">
+                </div>
+                <button class="btn btn-primary" onclick="showAddCommunityModal()">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Community
+                </button>
+            </div>
+
+            <!-- Communities Table -->
+            <div class="card">
+                <div class="table-container">
+                    <table id="communities-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Care Level</th>
+                                <th>Monthly Fee</th>
+                                <th>ZIP Code</th>
+                                <th>Enhanced</th>
+                                <th>Waitlist</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="communities-tbody">
+                            <tr>
+                                <td colspan="7" class="loading">Loading communities...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help View -->
+        <div id="help-view" class="view">
+            <div class="view-header">
+                <h1>User Guide</h1>
+                <p class="subtitle">Everything you need to know about using this system</p>
+            </div>
+
+            <div class="help-content">
+                <div class="help-section">
+                    <h2>🎯 Getting Started</h2>
+                    <div class="card">
+                        <h3>1. Process a Consultation</h3>
+                        <p>Start by uploading an audio recording or pasting a text transcript of a client consultation. The AI will automatically extract:</p>
+                        <ul>
+                            <li>Client's care level needs (Independent, Assisted, Memory Care)</li>
+                            <li>Budget range</li>
+                            <li>Timeline (immediate, near-term, flexible)</li>
+                            <li>Location preference</li>
+                            <li>Special requirements (pets, couples, enhanced services)</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h3>2. Review Recommendations</h3>
+                        <p>The system uses an 8-dimension AI ranking algorithm to provide the top 5 community recommendations:</p>
+                        <ul>
+                            <li><strong>Rule-Based Rankings:</strong> Business value, cost efficiency, distance, budget fit, couple suitability</li>
+                            <li><strong>AI-Powered Rankings:</strong> Availability match, amenity fit, holistic compatibility</li>
+                        </ul>
+                        <p>Each recommendation includes detailed reasoning and key metrics.</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>3. CRM Integration</h3>
+                        <p>Results are automatically pushed to Google Sheets CRM (if configured) with three sheets:</p>
+                        <ul>
+                            <li><strong>Client Consultations:</strong> Overview of each consultation</li>
+                            <li><strong>Recommendations Detail:</strong> All 5 recommendations with full details</li>
+                            <li><strong>Performance Analytics:</strong> Processing metrics and costs</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>🗄️ Community Database Management</h2>
+                    <div class="card">
+                        <h3>Adding a Community</h3>
+                        <ol>
+                            <li>Go to "Community Database" tab</li>
+                            <li>Click "Add Community" button</li>
+                            <li>Fill in the required fields (marked with *)</li>
+                            <li>Click "Save Community"</li>
+                        </ol>
+
+                        <h3>Editing a Community</h3>
+                        <ol>
+                            <li>Find the community in the table</li>
+                            <li>Click the edit (pencil) icon</li>
+                            <li>Update the fields</li>
+                            <li>Click "Update Community"</li>
+                        </ol>
+
+                        <h3>Deleting a Community</h3>
+                        <ol>
+                            <li>Find the community in the table</li>
+                            <li>Click the delete (trash) icon</li>
+                            <li>Confirm the deletion</li>
+                        </ol>
+
+                        <p class="help-note">⚠️ <strong>Important:</strong> Changes to the database affect future recommendations immediately.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>📊 Understanding Results</h2>
+                    <div class="card">
+                        <h3>Recommendation Cards</h3>
+                        <p>Each recommendation shows:</p>
+                        <ul>
+                            <li><strong>Rank:</strong> 1-5, with 1 being the best match</li>
+                            <li><strong>Combined Score:</strong> Lower is better (weighted Borda count)</li>
+                            <li><strong>Monthly Fee:</strong> Base monthly cost</li>
+                            <li><strong>Distance:</strong> Miles from preferred location</li>
+                            <li><strong>Availability:</strong> Waitlist status</li>
+                            <li><strong>AI Reasoning:</strong> Why this community is recommended</li>
+                        </ul>
+
+                        <h3>Performance Metrics</h3>
+                        <ul>
+                            <li><strong>Processing Time:</strong> Total time to generate recommendations</li>
+                            <li><strong>Token Usage:</strong> API tokens consumed (audio input, text input, output)</li>
+                            <li><strong>Cost:</strong> Estimated API cost based on Gemini 2.5 Flash pricing</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>💡 Tips & Best Practices</h2>
+                    <div class="card">
+                        <h3>Audio Recording Tips</h3>
+                        <ul>
+                            <li>Ensure clear audio quality</li>
+                            <li>Speak clearly and include all relevant details</li>
+                            <li>Mention budget, timeline, and location explicitly</li>
+                            <li>Supported formats: M4A, MP3, WAV, OGG</li>
+                        </ul>
+
+                        <h3>Text Consultation Tips</h3>
+                        <ul>
+                            <li>Include conversation format (Agent: / Client:)</li>
+                            <li>Be specific about requirements</li>
+                            <li>Mention ZIP code or city name</li>
+                            <li>State timeline clearly (immediate = <1 month, near-term = 1-3 months)</li>
+                        </ul>
+
+                        <h3>Database Management Tips</h3>
+                        <ul>
+                            <li>Keep monthly fees up-to-date for accurate recommendations</li>
+                            <li>Update waitlist status regularly</li>
+                            <li>Use consistent ZIP code formatting (5 digits)</li>
+                            <li>Fill in all important fields for better AI matching</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>⚙️ System Requirements</h2>
+                    <div class="card">
+                        <h3>Browser Compatibility</h3>
+                        <p>Works best on modern browsers:</p>
+                        <ul>
+                            <li>Chrome 90+</li>
+                            <li>Firefox 88+</li>
+                            <li>Safari 14+</li>
+                            <li>Edge 90+</li>
+                        </ul>
+
+                        <h3>API Configuration</h3>
+                        <p>Required environment variables:</p>
+                        <ul>
+                            <li><strong>GEMINI_API_KEY:</strong> Google Gemini API key (required)</li>
+                            <li><strong>GOOGLE_SPREADSHEET_ID:</strong> Google Sheets ID (optional for CRM)</li>
+                            <li><strong>GOOGLE_SERVICE_ACCOUNT_FILE:</strong> Service account JSON (optional for CRM)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>❓ Troubleshooting</h2>
+                    <div class="card">
+                        <h3>Common Issues</h3>
+
+                        <h4>Audio processing fails</h4>
+                        <p><strong>Solution:</strong> Check file format (must be M4A, MP3, WAV, or OGG) and file size (max 50MB). Ensure audio is clear and not corrupted.</p>
+
+                        <h4>"Not ranked by AI" appears in results</h4>
+                        <p><strong>Solution:</strong> This means the AI ranking timed out. The system uses a fallback algorithm. Results are still valid but less detailed. This usually happens due to API rate limits.</p>
+
+                        <h4>CRM push fails</h4>
+                        <p><strong>Solution:</strong> Verify Google Sheets credentials are configured correctly in .env file and that the spreadsheet is shared with the service account.</p>
+
+                        <h4>Database changes don't reflect</h4>
+                        <p><strong>Solution:</strong> Refresh the page after making database changes. The system reloads the data automatically.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p id="loading-text">Processing consultation...</p>
+        <div id="progress-log" class="progress-log"></div>
+    </div>
+
+    <!-- Modal for Add/Edit Community -->
+    <div id="community-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add Community</h2>
+                <button class="btn-icon" onclick="closeCommunityModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="community-form">
+                    <input type="hidden" id="community-id">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="care-level">Care Level * (Type of Service)</label>
+                            <select id="care-level" required>
+                                <option value="">Select...</option>
+                                <option value="Independent Living">Independent Living</option>
+                                <option value="Assisted Living">Assisted Living</option>
+                                <option value="Memory Care">Memory Care</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="monthly-fee">Monthly Fee *</label>
+                            <input type="number" id="monthly-fee" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="zip-code">ZIP Code *</label>
+                            <input type="text" id="zip-code" pattern="[0-9]{5}" maxlength="5" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="apartment-type">Apartment Type</label>
+                            <select id="apartment-type">
+                                <option value="">Select...</option>
+                                <option value="Studio">Studio</option>
+                                <option value="1 Bedroom">1 Bedroom</option>
+                                <option value="2 Bedroom">2 Bedroom</option>
+                                <option value="Shared Room">Shared Room</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="deposit">Deposit ($)</label>
+                            <input type="number" id="deposit" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="move-in-fee">Move-In Fee ($)</label>
+                            <input type="number" id="move-in-fee" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="second-person-fee">2nd Person Fee ($)</label>
+                            <input type="number" id="second-person-fee" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="pet-fee">Pet Fee ($)</label>
+                            <input type="number" id="pet-fee" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contract-rate">Contract Rate (%) *</label>
+                            <input type="number" id="contract-rate" step="0.01" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="waitlist">Waitlist Status *</label>
+                            <select id="waitlist">
+                                <option value="Available">Available</option>
+                                <option value="1-2 months">1-2 months</option>
+                                <option value="3-6 months">3-6 months</option>
+                                <option value="6+ months">6+ months</option>
+                                <option value="Unconfirmed">Unconfirmed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="work-placement">Work with Placement? *</label>
+                            <select id="work-placement">
+                                <option value="TRUE">Yes</option>
+                                <option value="FALSE">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="community-fee">Community Fee - One Time ($)</label>
+                            <input type="number" id="community-fee" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" id="enhanced">
+                                <span>Enhanced Services Available</span>
+                            </label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" id="enriched">
+                                <span>Enriched Programming Available</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCommunityModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCommunity()">
+                    <span id="save-btn-text">Save Community</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=5"></script>
+</body>
+</html>
