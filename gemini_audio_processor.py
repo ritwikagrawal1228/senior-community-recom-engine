@@ -65,9 +65,23 @@ class GeminiAudioProcessor:
                     f"Supported formats: {', '.join(supported_extensions)}"
                 )
             
-            # Upload audio file to Gemini using new client API
+            # Map file extensions to MIME types
+            mime_type_map = {
+                '.mp3': 'audio/mpeg',
+                '.wav': 'audio/wav',
+                '.m4a': 'audio/mp4',
+                '.ogg': 'audio/ogg',
+                '.webm': 'audio/webm',
+                '.flac': 'audio/flac'
+            }
+            mime_type = mime_type_map.get(file_ext, 'audio/mpeg')
+            
+            # Upload audio file to Gemini using new client API with config
             try:
-                audio_file = self.client.files.upload(file=audio_path)
+                audio_file = self.client.files.upload(
+                    file=audio_path,
+                    config=types.UploadFileConfig(mime_type=mime_type)
+                )
             except Exception as upload_error:
                 error_msg = str(upload_error)
                 if 'invalid' in error_msg.lower() or 'format' in error_msg.lower() or 'unsupported' in error_msg.lower():

@@ -2,7 +2,7 @@
 # Version 2.0 - Enhanced with Real Geocoding
 
 # AI Processing
-google-generativeai>=0.3.0  # Gemini 2.5 Flash for audio extraction
+google-genai>=1.0.0  # Gemini 2.5 Flash for audio extraction (new unified SDK)
 
 # Data Processing
 pandas>=2.0.0               # Community data filtering
