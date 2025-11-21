@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  ai-sales-assistant:
+    build: .
+    ports:
+      - "5050:5050"
+    environment:
+      # Flask Configuration
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+
+      # API Keys (set these in your .env file or environment)
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - API_KEY=${API_KEY}
+
+      # Google Sheets Integration (optional)
+      - GOOGLE_SPREADSHEET_ID=${GOOGLE_SPREADSHEET_ID}
+      - GOOGLE_SERVICE_ACCOUNT_FILE=${GOOGLE_SERVICE_ACCOUNT_FILE}
+
+      # Email Configuration (optional)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - MANAGER_EMAIL=${MANAGER_EMAIL}
+
+      # CORS Configuration
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5050}
+
+    volumes:
+      # Mount the Excel database file
+      - ./DataFile_students_OPTIMIZED.xlsx:/app/DataFile_students_OPTIMIZED.xlsx:ro
+      # Mount uploads directory for file persistence
+      - uploads_data:/app/uploads
+      # Mount output directory for processing results
+      - output_data:/app/output
+      # Mount logs directory for log persistence
+      - ./logs:/app/logs
+
+    networks:
+      - ai-sales-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  uploads_data:
+    driver: local
+  output_data:
+    driver: local
+
+networks:
+  ai-sales-network:
+    driver: bridge

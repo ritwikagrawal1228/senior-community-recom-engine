@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+server.log
+
+# Backup files
+*.bak
+*.backup
+*-E
+*.tmp
+
+# Uploads and Output (keep directories, ignore contents)
+uploads/*
+!uploads/.gitkeep
+output/*
+!output/.gitkeep
+
+# Google Sheets credentials
+*.json
+!package.json
+!tsconfig.json
+service-account*.json
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled files
+*.pyc
+*.pyo
+
+# Large media files (sample audio files - keep directory structure)
+audio-files/*.m4a
+audio-files/*.mp3
+audio-files/*.wav
+
+# Diagnostic and temporary documentation
+*_SUMMARY.md
+*_COMPLETE.md
+BUGFIX_*.md
+CRITICAL_*.md
+FILE_*.md
+WEBSOCKET_*.md
+
+# Zip files
+*.zip
+
+# Temporary helper scripts
+push_to_personal_github.sh
