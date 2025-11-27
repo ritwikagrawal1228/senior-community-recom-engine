@@ -33,7 +33,7 @@ class GeminiAudioProcessor:
 
         # Initialize new Gemini client
         self.client = genai.Client(api_key=api_key)
-        self.model_name = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-exp')
+        self.model_name = os.getenv('GEMINI_MODEL')
 
     def process_audio_file(self, audio_path: str, language: str = 'english') -> Dict[str, Any]:
         """
