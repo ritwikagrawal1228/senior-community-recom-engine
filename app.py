@@ -1843,9 +1843,15 @@ def handle_start_voice(data):
                     
                     logger.info(f"Got {len(recommendations)} recommendations in {processing_time:.2f}s")
                     
+                    # Check for manual intervention needed (0 or low results)
+                    manual_intervention = result.get('manual_intervention_needed', False)
+                    no_results_reason = result.get('no_results_reason', '')
+                    
                     # Store in session
                     voice_session.recommendations = recommendations
-                    voice_session.status = 'results'
+                    voice_session.status = 'results' if recommendations else 'no_results'
+                    voice_session.manual_intervention = manual_intervention
+                    voice_session.no_results_reason = no_results_reason
                     
                     # Extract performance metrics (same as audio/text)
                     perf = result.get('performance_metrics', {})
@@ -1898,10 +1904,18 @@ def handle_start_voice(data):
                     # Send recommendations to the voice agent to speak
                     loop = voice_loops.get(session_id)
                     if loop and loop.is_running():
-                        future = asyncio.run_coroutine_threadsafe(
-                            agent.send_recommendations(recommendations), 
-                            loop
-                        )
+                        if recommendations:
+                            # Normal case - send recommendations
+                            future = asyncio.run_coroutine_threadsafe(
+                                agent.send_recommendations(recommendations), 
+                                loop
+                            )
+                        else:
+                            # No results case - send compassionate no-results message
+                            future = asyncio.run_coroutine_threadsafe(
+                                agent.send_no_results_message(no_results_reason), 
+                                loop
+                            )
                         future.result(timeout=30)
                     
                     # Also notify frontend (same format as audio/text results)
@@ -1913,7 +1927,10 @@ def handle_start_voice(data):
                         'run_log_id': run_log_id,
                         'crm_pushed': crm_result is not None,
                         'consultation_id': crm_result.get('consultation_id') if crm_result else None,
-                        'performance_metrics': perf  # Include full metrics like audio/text
+                        'performance_metrics': perf,  # Include full metrics like audio/text
+                        'manual_intervention_needed': manual_intervention,
+                        'no_results_reason': no_results_reason,
+                        'no_results_message': result.get('summary', {}).get('message', '') if not recommendations else ''
                     }, room=session_id)
                     
                 except Exception as e:

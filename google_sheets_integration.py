@@ -69,16 +69,27 @@ class GoogleSheetsCRM:
         client_info = result.get('client_info', {})
         recommendations = result.get('recommendations', [])
         metrics = result.get('performance_metrics', {})
+        
+        # Extract manual intervention flags
+        manual_intervention_needed = result.get('manual_intervention_needed', False)
+        no_results_reason = result.get('no_results_reason', '')
+        intervention_type = result.get('intervention_type', '')
+        suggested_action = result.get('suggested_action', '')
 
         # Get next consultation ID
         consultations_sheet = self.spreadsheet.worksheet('Client Consultations')
         consultation_id = len(consultations_sheet.get_all_values())  # Includes header
 
         print(f"\n[PUSHING] Consultation #{consultation_id} to Google Sheets...")
+        if manual_intervention_needed:
+            print(f"[ALERT] Manual intervention needed: {intervention_type} - {no_results_reason}")
 
         # Push to each sheet
         row_numbers = {}
-        row_numbers['consultation'] = self._push_to_consultations(consultation_id, client_info, recommendations, metrics)
+        row_numbers['consultation'] = self._push_to_consultations(
+            consultation_id, client_info, recommendations, metrics,
+            manual_intervention_needed, no_results_reason, suggested_action
+        )
         row_numbers['recommendations'] = self._push_to_recommendations(consultation_id, client_info, recommendations)
         row_numbers['performance'] = self._push_to_performance(consultation_id, metrics)
 
@@ -86,11 +97,16 @@ class GoogleSheetsCRM:
 
         return {
             'consultation_id': consultation_id,
-            'rows_added': row_numbers
+            'rows_added': row_numbers,
+            'manual_intervention_needed': manual_intervention_needed,
+            'no_results_reason': no_results_reason
         }
 
     def _push_to_consultations(self, consultation_id: int, client_info: Dict,
-                               recommendations: list, metrics: Dict) -> int:
+                               recommendations: list, metrics: Dict,
+                               manual_intervention: bool = False, 
+                               no_results_reason: str = '',
+                               suggested_action: str = '') -> int:
         """Push to Sheet 1: Client Consultations"""
         sheet = self.spreadsheet.worksheet('Client Consultations')
 
@@ -109,6 +125,18 @@ class GoogleSheetsCRM:
         if special_needs.get('other'):
             special_needs_text.append(special_needs['other'])
 
+        # Determine status based on manual intervention need
+        if manual_intervention:
+            if len(recommendations) == 0:
+                status = 'URGENT - No Matches'
+                notes = f"MANUAL INTERVENTION REQUIRED: {no_results_reason}. {suggested_action}"
+            else:
+                status = 'REVIEW - Limited Options'
+                notes = f"Only {len(recommendations)} option(s) found. {no_results_reason}. {suggested_action}"
+        else:
+            status = 'New'
+            notes = ''
+
         # Prepare row data
         row = [
             consultation_id,
@@ -120,22 +148,24 @@ class GoogleSheetsCRM:
             client_info.get('location_preference', ''),
             '; '.join(special_needs_text) if special_needs_text else '',
             len(recommendations),
-            top_rec.get('community_id', ''),
-            top_rec.get('community_name', ''),
+            top_rec.get('community_id', '') if top_rec else 'N/A - No matches',
+            top_rec.get('community_name', '') if top_rec else 'N/A - Manual search required',
             f"${top_metrics.get('monthly_fee', 0):,.0f}" if top_metrics.get('monthly_fee') else '',
             round(top_metrics.get('distance_miles', 0), 2) if top_metrics.get('distance_miles') else '',
             round(top_rec.get('combined_rank_score', 0), 2) if top_rec.get('combined_rank_score') else '',
-            top_explanations.get('holistic_reason', ''),
+            top_explanations.get('holistic_reason', '') if top_rec else no_results_reason,
             round(metrics.get('timings', {}).get('e2e_total', 0), 2),
             f"${metrics.get('costs', {}).get('total_cost', 0):.6f}",
-            'New',  # Status
-            '',  # Assigned_To
-            ''   # Notes
+            status,
+            '',  # Assigned_To - to be filled by team
+            notes
         ]
 
         # Append row
         sheet.append_row(row, value_input_option='USER_ENTERED')
         print(f"  [OK] Added to 'Client Consultations' (Row {consultation_id + 1})")
+        if manual_intervention:
+            print(f"  [ALERT] Status set to '{status}' - requires manual follow-up")
 
         return consultation_id + 1
 

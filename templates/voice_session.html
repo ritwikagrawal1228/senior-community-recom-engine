@@ -1016,7 +1016,13 @@
         
         socket.on('voice_recommendations', (data) => {
             stopProcessingMusic();
-            showRecommendations(data.recommendations);
+            
+            // Check if manual intervention needed (no or low results)
+            if (data.manual_intervention_needed && (!data.recommendations || data.recommendations.length === 0)) {
+                showNoResultsMessage(data.no_results_reason, data.no_results_message);
+            } else {
+                showRecommendations(data.recommendations);
+            }
         });
 
         // Helpers
@@ -1040,9 +1046,46 @@
             return bytes.buffer;
         }
         
+        function showNoResultsMessage(reason, userMessage) {
+            const panel = document.getElementById('recommendations-panel');
+            const list = document.getElementById('recommendations-list');
+            
+            if (!panel || !list) {
+                console.error('Recommendations panel elements not found');
+                return;
+            }
+            
+            const displayMessage = userMessage || "We're sorry, we couldn't find an immediate option at this moment. Our team will reach out to you soon.";
+            
+            list.innerHTML = `
+                <div class="no-results-card" style="text-align: center; padding: 2rem; background: var(--glass-bg); backdrop-filter: blur(20px); border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💙</div>
+                    <h3 style="margin-bottom: 1rem; color: var(--text-primary);">We're Here to Help</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 1rem; line-height: 1.6;">
+                        ${displayMessage}
+                    </p>
+                    ${reason ? `
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,193,7,0.1); border-radius: 0.5rem; border-left: 3px solid #ffc107;">
+                            <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">
+                                <strong>Note:</strong> ${reason}
+                            </p>
+                        </div>
+                    ` : ''}
+                    <div style="margin-top: 1.5rem;">
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">
+                            📞 A specialist will call you back shortly to discuss alternative options.
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            panel.classList.add('visible');
+            console.log('Showing no-results message:', reason);
+        }
+        
         function showRecommendations(recs) {
             if (!recs || recs.length === 0) {
-                console.warn('No recommendations received');
+                showNoResultsMessage(null, null);
                 return;
             }
             

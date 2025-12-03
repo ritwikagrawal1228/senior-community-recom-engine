@@ -273,9 +273,51 @@ class GeminiVoiceAgent:
         
         return None
     
+    async def send_no_results_message(self, reason: str = None):
+        """Send a friendly message when no recommendations are found"""
+        if not self.session:
+            return
+        
+        # Build a compassionate, professional no-results message
+        no_results_message = """NO_RESULTS_MESSAGE:
+
+I need to deliver some news with GENUINE EMPATHY and WARMTH. Please say something like:
+
+"I've searched through our entire database, and I want to be completely honest with you - we weren't able to find an immediate option that matches all of your specific needs right now.
+
+But please don't worry! Here's what we're going to do: I'm arranging for one of our senior living specialists to give you a personal call very soon. They have access to additional resources and relationships with communities that might not be in our main database.
+
+"""
+        
+        if reason:
+            no_results_message += f"The main reason we couldn't find a match was: {reason}\n\n"
+        
+        no_results_message += """Your patience means so much to us, and we're committed to helping you find the perfect place. Is there anything else I can help you with while you wait for that callback?"
+
+IMPORTANT VOICE DIRECTION:
+- Sound GENUINELY CARING and EMPATHETIC
+- Speak SLOWLY and REASSURINGLY
+- Convey WARMTH and UNDERSTANDING
+- Be PROFESSIONAL but HUMAN
+- Sound CONFIDENT that we WILL help them
+"""
+        
+        logger.info(f"Sending no-results message to voice agent")
+        
+        try:
+            await self.session.send(input=no_results_message, end_of_turn=True)
+            self.recommendations_sent = True  # Mark as sent even for no results
+        except Exception as e:
+            logger.error(f"Error sending no-results message: {e}")
+    
     async def send_recommendations(self, recommendations: list):
         """Send recommendations back to the agent to speak to the user"""
-        if not self.session or not recommendations:
+        if not self.session:
+            return
+        
+        # Handle empty recommendations - use dedicated no-results message
+        if not recommendations:
+            await self.send_no_results_message()
             return
         
         # Format recommendations for the agent to speak with ENTHUSIASM and VARIATION

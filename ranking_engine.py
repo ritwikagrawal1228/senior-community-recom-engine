@@ -647,10 +647,20 @@ YOUR TASK:
 Rank all {len(community_data)} communities from 1 (best availability match) to {len(community_data)} (worst match).
 Consider nuances in the client's timeline description and notes.
 
+CRITICAL REASONING REQUIREMENTS:
+- Each "reason" MUST mention the ACTUAL waitlist/availability value from the data
+- Compare to client's timeline need specifically
+- For ranks 2+, explain WHY this is ranked LOWER than the rank above it
+
+EXAMPLE GOOD REASONS:
+- Rank 1: "Available immediately - perfect for client's immediate move-in need"
+- Rank 2: "1-2 month waitlist vs #1's immediate availability, but still meets near-term timeline"
+- Rank 3: "3-6 month waitlist significantly longer than #1 and #2, may not meet client's immediate timeline"
+
 IMPORTANT:
 - Every community must get a unique rank from 1 to {len(community_data)}
 - If multiple communities are similar, rank them by subtleties in waitlist description
-- Provide specific reasoning for each ranking
+- Provide specific, comparative reasoning for each ranking
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {{
@@ -658,7 +668,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
     {{
       "community_id": 1,
       "rank": 1,
-      "reason": "Available immediately, perfect for urgent placement need"
+      "reason": "Available immediately - perfect for urgent placement need"
     }},
     ...
   ]
@@ -864,10 +874,23 @@ COMMUNITIES (id, monthly_fee, distance_miles, waitlist, previous_ranks):
 
 TASK: Rank 1 (best overall) to {len(simplified_data)} (worst). Consider synergies (e.g., close+available+affordable=great).
 
+CRITICAL REASONING REQUIREMENTS:
+- Each "reason" MUST be SPECIFIC and COMPARATIVE
+- For rank 1: Explain WHY this community is the BEST overall match
+- For ranks 2-5: Explain WHY this community ranks LOWER than the ones above it
+- Include SPECIFIC numbers: actual monthly fees, actual distances, actual waitlist times
+- Compare DIRECTLY to higher-ranked options: "Ranks #2 because while closer than #1 ($X/mo vs $Y/mo), the 6-month waitlist vs #1's immediate availability makes it less suitable for client's immediate timeline"
+- Avoid generic phrases like "good balance" - be SPECIFIC about what's good and what's the tradeoff
+
+EXAMPLE GOOD REASONS:
+- Rank 1: "Best match at $4,200/mo (within budget), only 2.3 miles away, and available immediately - all three factors align perfectly with client's needs"
+- Rank 2: "Slightly more affordable at $3,900/mo than #1, but 8.5 miles away vs #1's 2.3 miles makes it less convenient for family visits"  
+- Rank 3: "Closest option at 1.1 miles, but $5,500/mo exceeds client's $5,000 budget and has a 3-month waitlist vs #1's immediate availability"
+
 Return JSON:
 {{
   "rankings": [
-    {{"community_id": 1, "rank": 1, "reason": "Best balance of cost, distance, and availability"}},
+    {{"community_id": 1, "rank": 1, "reason": "SPECIFIC reason with numbers and comparisons"}},
     ...
   ]
 }}"""

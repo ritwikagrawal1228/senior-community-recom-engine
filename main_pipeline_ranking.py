@@ -412,6 +412,18 @@ class RankingBasedRecommendationSystem:
 
         # Export to CRM format
         crm_output = self.ranking_engine.export_to_crm_format(ranked_communities, client_req)
+        
+        # Check for low results and flag for manual intervention
+        num_results = len(ranked_communities)
+        if num_results < 5:
+            # Flag for manual intervention - we have results but fewer than expected
+            crm_output['manual_intervention_needed'] = True
+            crm_output['intervention_type'] = 'LOW_RESULTS'
+            crm_output['no_results_reason'] = f"Only {num_results} communities matched criteria (expected 5+)"
+            crm_output['suggested_action'] = f"Review client requirements - only {num_results} option(s) available. May need to expand search criteria."
+            print(f"\n[WARNING] Only {num_results} recommendations - manual intervention may be needed")
+        else:
+            crm_output['manual_intervention_needed'] = False
 
         # Print summary
         print("\n" + "="*80)
@@ -438,16 +450,57 @@ class RankingBasedRecommendationSystem:
 
         return crm_output
 
-    def _generate_empty_result(self, client_data: dict) -> dict:
-        """Generate empty result when no communities match"""
+    def _generate_empty_result(self, client_data: dict, filter_reason: str = None) -> dict:
+        """Generate empty result when no communities match with manual intervention flag"""
+        
+        # Analyze why no results were found to provide specific reason
+        no_results_reasons = []
+        
+        budget = client_data.get('budget')
+        budget_min = client_data.get('budget_min', 0)
+        budget_max = client_data.get('budget_max', budget)
+        
+        if budget_max and budget_max < 3000:
+            no_results_reasons.append(f"Budget (${budget_max:,.0f}/mo) is below typical market rates")
+        
+        location = client_data.get('location_preference', '')
+        if location and len(str(location)) < 3:
+            no_results_reasons.append("Location criteria may be too restrictive")
+        
+        care_level = client_data.get('care_level', '')
+        if 'memory' in str(care_level).lower():
+            no_results_reasons.append("Memory care options are limited in selected area")
+        
+        timeline = client_data.get('timeline', '')
+        if 'immediate' in str(timeline).lower():
+            no_results_reasons.append("Immediate availability requirements limit options")
+        
+        if filter_reason:
+            no_results_reasons.append(filter_reason)
+        
+        if not no_results_reasons:
+            no_results_reasons.append("Criteria combination too restrictive for available inventory")
+        
+        # Build the friendly user message
+        user_message = (
+            "We're sorry, we couldn't find an immediate option at this moment. "
+            "Let us arrange for someone to call you back soon. "
+            "Thank you for your patience!"
+        )
+        
         return {
             "client_info": client_data,
             "ranking_weights": self.ranking_weights,
             "recommendations": [],
             "summary": {
                 "total_matches": 0,
-                "message": "No communities match the specified criteria. Please adjust requirements."
-            }
+                "message": user_message
+            },
+            # CRM/Business Logic fields for manual intervention
+            "manual_intervention_needed": True,
+            "no_results_reason": "; ".join(no_results_reasons),
+            "intervention_type": "NO_MATCHES",
+            "suggested_action": "Manual outreach required - review client requirements and expand search criteria"
         }
 
     def _save_results(self, result: dict, output_file: str):
