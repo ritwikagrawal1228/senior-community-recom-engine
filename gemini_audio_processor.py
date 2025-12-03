@@ -351,9 +351,9 @@ Extract the following information and return it as JSON:
   "care_level": "string (must be exactly one of: 'Independent Living', 'Assisted Living', 'Memory Care')",
   "enhanced": "boolean (true if they need Enhanced Assisted Living - higher medical care, nursing support, diabetes management, oxygen, etc.)",
   "enriched": "boolean (true if they need Enriched Housing Program - apartment-style with support services, meals, housekeeping, transportation)",
-  "budget": "number (maximum monthly budget in dollars, extract just the number. If not mentioned, use null)",
+  "budget": "number (ONLY the numeric amount stated - e.g., '$5000/month' → 5000, 'around 6k' → 6000. Use null ONLY if absolutely no budget amount was mentioned)",
   "timeline": "string (must be exactly one of: 'immediate', 'near-term', 'flexible')",
-  "location_preference": "string (preferred ZIP code as 5-digit string OR city/area description like 'West side of Rochester'. If not mentioned, use null)",
+  "location_preference": "string (MUST be a 5-digit ZIP code - infer from city/area name using your knowledge. Only use null if no location mentioned at all)",
   "special_needs": {
     "pets": "boolean (true if they have pets)",
     "apartment_type_preference": "string (if mentioned, e.g., 'studio', '1 bedroom', '2 bedroom')",
@@ -376,25 +376,49 @@ IMPORTANT DEFINITIONS:
 CRITICAL RULES:
 1. For "care_level", use EXACTLY one of the three options listed
 2. For "timeline", use EXACTLY one of: "immediate", "near-term", or "flexible"
-3. For "budget", extract ONLY the numeric value (no $, no commas). If there is not budget mentioned set 50000 as the budget. 
-4. For "location_preference" (IMPORTANT - READ CAREFULLY):
-   - **PREFERRED**: Extract 5-digit ZIP code if mentioned (e.g., "14534", "14611", "14618")
-   - Look for phrases like "ZIP 14534", "in 14611", "near 14618", "close to ZIP 14534"
-   - If ZIP is implied by area name, infer the ZIP code:
-     * "Brighton" or "Brighton area" = "14618"
-     * "Pittsford" = "14534"
-     * "Webster" = "14580"
-     * "Penfield" = "14526"
-     * "Greece" = "14626"
-     * "Downtown Rochester" or "central Rochester" = "14604" (default to downtown)
-     * "West Rochester" or "west side" = "14611"
+3. For "budget", extract ONLY the numeric value (no $, no commas). ONLY if NO budget amount is mentioned at all, use null. Do NOT default to any number - only extract what was actually stated.
+4. For "location_preference" (CRITICAL - ALWAYS EXTRACT OR INFER A ZIP CODE):
+   - **BEST**: If client mentions a 5-digit ZIP code directly, use that (e.g., "14534", "14611")
+   - **REQUIRED**: If client mentions ANY city, town, neighborhood, or area name, you MUST infer the ZIP code using your knowledge:
+     
+     ROCHESTER NY AREA ZIP CODES (memorize these):
+     * "Brighton" or "Brighton area" or "near Brighton" = "14618"
+     * "Pittsford" or "Pittsford area" = "14534"
+     * "Webster" or "Webster area" = "14580"
+     * "Penfield" or "Penfield area" = "14526"
+     * "Greece" or "Greece area" = "14626"
+     * "Henrietta" or "Henrietta area" = "14467"
+     * "Irondequoit" = "14617"
+     * "Gates" = "14624"
+     * "Chili" = "14624"
+     * "Victor" = "14564"
+     * "Fairport" = "14450"
+     * "Canandaigua" = "14424"
+     * "Downtown Rochester" or "central Rochester" or "city of Rochester" = "14604"
+     * "West Rochester" or "west side" or "19th ward" = "14611"
      * "East Rochester" or "east side" = "14618"
-     * "Rochester area" or "anywhere in Rochester" or just "Rochester" = "14604" (default to downtown)
-     * "anywhere" without city = null
-   - If city/area mentioned WITHOUT specific ZIP and not in the list above, use the area description
-   - If nothing location-related is mentioned, use null
+     * "South Rochester" or "south wedge" = "14620"
+     * "North Rochester" or "north side" = "14621"
+     * "Rochester" or "Rochester area" or "anywhere in Rochester" = "14604"
+     
+     FOR OTHER US CITIES: Use your knowledge to infer the most likely ZIP code for the area mentioned. Examples:
+     * "Manhattan" or "New York City" = "10001"
+     * "Los Angeles downtown" = "90012"
+     * "Chicago downtown" = "60601"
+     * "San Francisco" = "94102"
+     * "Miami" = "33101"
+     
+   - If client says vague things like "anywhere" or "flexible on location" without ANY city = null
+   - NEVER return a city name - ALWAYS convert to a ZIP code using your knowledge
 5. If something is not mentioned, use null (not "unknown" or empty string)
 6. Return ONLY valid JSON, no markdown formatting, no extra text
+
+BUDGET EXTRACTION EXAMPLES:
+- "$5,000 per month" → budget: 5000
+- "around 6000" → budget: 6000  
+- "between 4000 and 6000" → budget: 6000 (use max)
+- "up to $7,500" → budget: 7500
+- No budget mentioned → budget: null
 
 Extract all available information from the conversation.
 """
