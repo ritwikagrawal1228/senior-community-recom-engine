@@ -1,207 +1,1042 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Sales Assistant - Login</title>
+    <meta name="description" content="AI-Powered Senior Living Placement Platform - Streamline your client consultations and community matching">
+    <title>SeniorMatch AI - Intelligent Senior Living Placement</title>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=SF+Pro+Text:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        /* ========================================
+           iOS 26 Liquid Glass Design System
+           ======================================== */
+        
+        :root {
+            /* iOS 26 Color Palette */
+            --ios-blue: #007AFF;
+            --ios-indigo: #5856D6;
+            --ios-purple: #AF52DE;
+            --ios-teal: #5AC8FA;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-red: #FF3B30;
+            
+            /* Liquid Glass Variables */
+            --liquid-glass-bg: rgba(255, 255, 255, 0.72);
+            --liquid-glass-border: rgba(255, 255, 255, 0.5);
+            --liquid-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --liquid-glass-blur: 40px;
+            --liquid-glass-saturation: 180%;
+            
+            /* Gradient Orbs */
+            --orb-1: rgba(0, 122, 255, 0.4);
+            --orb-2: rgba(88, 86, 214, 0.35);
+            --orb-3: rgba(90, 200, 250, 0.3);
+            --orb-4: rgba(52, 199, 89, 0.25);
+            --orb-5: rgba(175, 82, 222, 0.3);
+            
+            /* Typography */
+            --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-text: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
+            
+            /* Radius - iOS 26 uses more rounded corners */
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --radius-full: 9999px;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-text);
+            background: linear-gradient(180deg, #F5F7FA 0%, #E8ECF2 100%);
             min-height: 100vh;
+            color: #1D1D1F;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
+
+        /* ========================================
+           Animated Gradient Orbs Background
+           ======================================== */
+        
+        .orb-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            animation: orbFloat 25s ease-in-out infinite;
+            opacity: 0.9;
+        }
+
+        .orb-1 {
+            width: 800px;
+            height: 800px;
+            background: var(--orb-1);
+            top: -300px;
+            left: -200px;
+        }
+
+        .orb-2 {
+            width: 700px;
+            height: 700px;
+            background: var(--orb-2);
+            top: 30%;
+            right: -250px;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 600px;
+            height: 600px;
+            background: var(--orb-3);
+            bottom: -200px;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        .orb-4 {
+            width: 500px;
+            height: 500px;
+            background: var(--orb-4);
+            top: 60%;
+            left: 60%;
+            animation-delay: -15s;
+        }
+
+        .orb-5 {
+            width: 450px;
+            height: 450px;
+            background: var(--orb-5);
+            top: 10%;
+            left: 40%;
+            animation-delay: -20s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(80px, -50px) scale(1.1);
+            }
+            50% {
+                transform: translate(-50px, 80px) scale(0.95);
+            }
+            75% {
+                transform: translate(50px, 50px) scale(1.05);
+            }
+        }
+
+        /* ========================================
+           Navigation - Liquid Glass
+           ======================================== */
+        
+        .navbar {
+            position: fixed;
+            top: var(--space-md);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            border-radius: var(--radius-full);
+            padding: var(--space-sm) var(--space-lg);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: 
+                var(--liquid-glass-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xl);
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1D1D1F;
+        }
+
+        .nav-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 100%);
+            border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
         }
 
-        .login-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        .nav-logo-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .nav-link {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #1D1D1F;
+            text-decoration: none;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* ========================================
+           Hero Section
+           ======================================== */
+        
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: var(--space-3xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: var(--space-3xl);
+            align-items: center;
             width: 100%;
-            max-width: 400px;
+        }
+
+        .hero-content {
+            animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(20px);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--ios-blue);
+            border: 1px solid var(--liquid-glass-border);
+            margin-bottom: var(--space-lg);
+        }
+
+        .hero-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: #1D1D1F;
+            margin-bottom: var(--space-lg);
+        }
+
+        .hero-title .gradient-text {
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 50%, var(--ios-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #6E6E73;
+            max-width: 540px;
+            margin-bottom: var(--space-xl);
+            line-height: 1.6;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: var(--space-xl);
+            margin-top: var(--space-2xl);
+        }
+
+        .hero-stat {
+            text-align: left;
+        }
+
+        .hero-stat-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1D1D1F;
+            line-height: 1;
+        }
+
+        .hero-stat-label {
+            font-size: 0.9rem;
+            color: #6E6E73;
+            margin-top: var(--space-xs);
+        }
+
+        /* ========================================
+           Login Card - Liquid Glass
+           ======================================== */
+        
+        .login-card {
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: 
+                var(--liquid-glass-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+            animation: fadeInRight 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: var(--space-xl);
         }
 
-        .login-header h1 {
-            color: #333;
-            margin-bottom: 0.5rem;
-            font-size: 1.8rem;
+        .login-header h2 {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1D1D1F;
+            margin-bottom: var(--space-sm);
         }
 
         .login-header p {
-            color: #666;
-            font-size: 0.9rem;
+            color: #6E6E73;
+            font-size: 0.95rem;
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: var(--space-lg);
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: #333;
-            font-weight: 500;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1D1D1F;
+            margin-bottom: var(--space-sm);
         }
 
-        .form-group input {
+        .form-input {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e1e5e9;
-            border-radius: 5px;
+            padding: var(--space-md);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--radius-md);
             font-size: 1rem;
-            transition: border-color 0.3s ease;
+            font-family: inherit;
+            color: #1D1D1F;
+            transition: all 0.2s ease;
         }
 
-        .form-group input:focus {
+        .form-input::placeholder {
+            color: #8E8E93;
+        }
+
+        .form-input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .login-btn {
             width: 100%;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: var(--space-md);
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 100%);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: var(--radius-md);
             font-size: 1rem;
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
 
         .login-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4);
         }
 
-        .login-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
         }
 
         .alert {
-            padding: 0.75rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
+            padding: var(--space-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-lg);
             font-size: 0.9rem;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            font-weight: 500;
         }
 
         .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--ios-red);
+            border: 1px solid rgba(255, 59, 48, 0.2);
         }
 
-        .alert-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+        .alert-success {
+            background: rgba(52, 199, 89, 0.1);
+            color: var(--ios-green);
+            border: 1px solid rgba(52, 199, 89, 0.2);
         }
 
-        .credentials-info {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-top: 1.5rem;
-            border-left: 4px solid #667eea;
+        .credentials-box {
+            margin-top: var(--space-xl);
+            padding: var(--space-md);
+            background: rgba(0, 122, 255, 0.05);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(0, 122, 255, 0.1);
         }
 
-        .credentials-info h3 {
-            margin-bottom: 0.5rem;
-            color: #333;
-            font-size: 0.9rem;
+        .credentials-box h4 {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--ios-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: var(--space-sm);
         }
 
-        .credentials-info ul {
-            list-style: none;
-            padding: 0;
+        .credentials-box p {
+            font-size: 0.85rem;
+            color: #6E6E73;
+            font-family: 'SF Mono', Monaco, monospace;
+            margin-bottom: var(--space-xs);
         }
 
-        .credentials-info li {
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 0.25rem;
+        .credentials-box code {
+            color: #1D1D1F;
+            font-weight: 600;
+        }
+
+        /* ========================================
+           Features Section
+           ======================================== */
+        
+        .features {
+            padding: var(--space-3xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(20px);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--ios-indigo);
+            border: 1px solid var(--liquid-glass-border);
+            margin-bottom: var(--space-md);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 700;
+            color: #1D1D1F;
+            margin-bottom: var(--space-md);
+            letter-spacing: -0.02em;
+        }
+
+        .section-subtitle {
+            font-size: 1.15rem;
+            color: #6E6E73;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .feature-card {
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            -webkit-backdrop-filter: blur(var(--liquid-glass-blur)) saturate(var(--liquid-glass-saturation));
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: var(--liquid-glass-shadow);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--ios-blue), var(--ios-indigo), var(--ios-purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-lg);
+            color: white;
+        }
+
+        .feature-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .feature-icon.blue { background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo)); }
+        .feature-icon.purple { background: linear-gradient(135deg, var(--ios-indigo), var(--ios-purple)); }
+        .feature-icon.teal { background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue)); }
+        .feature-icon.green { background: linear-gradient(135deg, var(--ios-green), #30D158); }
+        .feature-icon.orange { background: linear-gradient(135deg, var(--ios-orange), #FF6B35); }
+        .feature-icon.red { background: linear-gradient(135deg, var(--ios-red), #FF6482); }
+
+        .feature-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1D1D1F;
+            margin-bottom: var(--space-sm);
+        }
+
+        .feature-desc {
+            font-size: 0.95rem;
+            color: #6E6E73;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           How It Works Section
+           ======================================== */
+        
+        .how-it-works {
+            padding: var(--space-3xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .steps-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xl);
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xl);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur));
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: var(--liquid-glass-shadow);
+        }
+
+        .step:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1D1D1F;
+            margin-bottom: var(--space-sm);
+        }
+
+        .step-desc {
+            color: #6E6E73;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           Footer
+           ======================================== */
+        
+        .footer {
+            padding: var(--space-xl);
+            text-align: center;
+            color: #8E8E93;
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ========================================
+           Responsive Design
+           ======================================== */
+        
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: var(--space-2xl);
+            }
+
+            .hero-content {
+                text-align: center;
+            }
+
+            .hero-subtitle {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .hero-stats {
+                justify-content: center;
+            }
+
+            .login-card {
+                max-width: 420px;
+                margin: 0 auto;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                width: calc(100% - 32px);
+                justify-content: space-between;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: var(--space-lg);
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .step {
+                flex-direction: column !important;
+                text-align: center;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>🤖 AI Sales Assistant</h1>
-            <p>Please sign in to continue</p>
-        </div>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'error' if category == 'error' else category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autofocus>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <button type="submit" class="login-btn">Sign In</button>
-        </form>
-
-        <div class="credentials-info">
-            <h3>Demo Credentials:</h3>
-            <ul>
-                <li><strong>admin:</strong> admin123</li>
-                <li><strong>consultant:</strong> consultant123</li>
-                <li><strong>manager:</strong> manager123</li>
-            </ul>
-        </div>
+    <!-- Animated Gradient Orbs -->
+    <div class="orb-container">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+        <div class="orb orb-5"></div>
     </div>
 
-    <script>
-        // Auto-focus username field
-        document.addEventListener('DOMContentLoaded', function() {
-            const usernameField = document.getElementById('username');
-            if (usernameField) {
-                usernameField.focus();
-            }
-        });
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-logo">
+            <div class="nav-logo-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+            <span>SeniorMatch AI</span>
+        </div>
+        <div class="nav-links">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
+        </div>
+    </nav>
 
-        // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const btn = document.querySelector('.login-btn');
-            btn.textContent = 'Signing in...';
-            btn.disabled = true;
-        });
-    </script>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                    AI-Powered Placement Platform
+                </div>
+                <h1 class="hero-title">
+                    Match Clients to <br>
+                    <span class="gradient-text">Perfect Communities</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Streamline your senior living placement process with AI-powered recommendations, 
+                    voice transcription, and intelligent matching based on care needs, budget, and preferences.
+                </p>
+                
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">500+</div>
+                        <div class="hero-stat-label">Communities</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">93%</div>
+                        <div class="hero-stat-label">Time Saved</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">10x</div>
+                        <div class="hero-stat-label">Faster Placements</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Login Card -->
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to your dashboard</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="/login">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username" required autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="login-btn">Sign In</button>
+                </form>
+
+                <div class="credentials-box">
+                    <h4>Demo Credentials</h4>
+                    <p>Username: <code>admin</code> / Password: <code>admin123</code></p>
+                    <p>Username: <code>consultant</code> / Password: <code>consultant123</code></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <div class="section-header">
+                <div class="section-tag">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    Platform Features
+                </div>
+                <h2 class="section-title">Everything You Need</h2>
+                <p class="section-subtitle">
+                    Powerful tools designed specifically for senior living placement agents
+                </p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Voice Transcription</h3>
+                    <p class="feature-desc">Upload client consultation recordings and let AI automatically extract care needs, budget, and preferences.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">AI Recommendations</h3>
+                    <p class="feature-desc">Get intelligent community matches ranked by compatibility with client needs, including care level, location, and budget.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon teal">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Community Database</h3>
+                    <p class="feature-desc">Access a comprehensive database with advanced filters for care level, monthly fees, ZIP code, and enhanced services.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Smart Forms</h3>
+                    <p class="feature-desc">Manual consultation forms with intelligent field suggestions and auto-complete based on common client profiles.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Waitlist Tracking</h3>
+                    <p class="feature-desc">Real-time waitlist status for each community - know availability at a glance: immediate, 1-2 months, or 6+ months.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon red">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Multi-Language</h3>
+                    <p class="feature-desc">Support for multiple languages including English, Spanish, Chinese, Korean, and Vietnamese for diverse client needs.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="features-container">
+            <div class="section-header">
+                <div class="section-tag">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Simple Process
+                </div>
+                <h2 class="section-title">How It Works</h2>
+                <p class="section-subtitle">
+                    From consultation to placement in three easy steps
+                </p>
+            </div>
+
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Upload or Enter Client Details</h3>
+                        <p class="step-desc">
+                            Upload a voice recording of your client consultation or manually enter details including care level needs (Independent, Assisted, Memory Care), budget range, timeline, and special requirements like pets or couples accommodations.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">AI Analyzes & Matches</h3>
+                        <p class="step-desc">
+                            Our AI processes the information, transcribes voice recordings, extracts key requirements, and searches the database for communities that best match your client's unique needs and preferences.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Review Ranked Recommendations</h3>
+                        <p class="step-desc">
+                            Receive a ranked list of community recommendations with match scores, pricing, availability, and detailed explanations of why each community fits your client's requirements.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Senior Living Recommendation System &copy; 2025. Built with AI-powered technology.</p>
+    </footer>
 </body>
 </html>

@@ -93,3 +93,6 @@ WEBSOCKET_*.md
 
 # Temporary helper scripts
 push_to_personal_github.sh
+
+# UI Reskin Design Files
+ui-reskin/

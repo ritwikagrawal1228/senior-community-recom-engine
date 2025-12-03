@@ -21,6 +21,7 @@ from datetime import datetime
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for, flash
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
@@ -28,6 +29,19 @@ from dotenv import load_dotenv
 # Local imports
 from main_pipeline_ranking import RankingBasedRecommendationSystem
 from google_sheets_integration import push_to_crm
+from voice_agent import (
+    GeminiVoiceAgent, 
+    create_session, 
+    get_session, 
+    end_session, 
+    active_sessions,
+    get_active_session_count,
+    get_all_sessions_info,
+    cleanup_expired_sessions,
+    SAMPLE_RATE
+)
+import voice_agent  # For dynamic config updates
+from admin_config import admin_config, Event
 
 # Global variable to store logs
 current_logs = []
@@ -72,6 +86,9 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
 
+# Initialize Socket.IO for real-time voice communication
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
 # Simple user database (in production, use a real database)
 USERS = {
     'admin': 'admin123',
@@ -79,7 +96,31 @@ USERS = {
     'manager': 'manager123'
 }
 
-# No SocketIO needed - live features removed
+# Admin users (can access admin panel)
+ADMIN_USERS = {'admin', 'manager'}
+
+def is_admin():
+    """Check if current user is an admin"""
+    return session.get('username') in ADMIN_USERS
+
+def admin_required(f):
+    """Decorator for admin-only routes"""
+    def decorated_function(*args, **kwargs):
+        # Check if this is an API request (AJAX/fetch)
+        is_api_request = request.path.startswith('/api/') or request.headers.get('Content-Type') == 'application/json'
+        
+        if 'username' not in session:
+            if is_api_request:
+                return jsonify({'error': 'Not logged in. Please log in as admin or manager.'}), 401
+            return redirect(url_for('login'))
+        if session['username'] not in ADMIN_USERS:
+            return jsonify({'error': f'Admin access required. You are logged in as "{session["username"]}", but you need to be logged in as "admin" or "manager".'}), 403
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
+# Voice agent instances per session
+voice_agents: dict = {}
 
 # Authentication decorator
 def login_required(f):
@@ -863,13 +904,676 @@ def update_excel():
             'details': error_details
         }), 500
 
+
+# ========================================
+# Voice Agent Routes
+# ========================================
+
+@app.route('/api/voice/create-session', methods=['POST'])
+@login_required
+def create_voice_session():
+    """Create a new voice session and return session ID with QR code URL"""
+    try:
+        data = request.get_json() or {}
+        language = data.get('language', 'english')
+        
+        # Create session (now returns tuple)
+        session_id, error = create_session()
+        
+        if error:
+            return jsonify({
+                'success': False,
+                'error': error,
+                'active_sessions': get_active_session_count(),
+                'max_sessions': admin_config.get_max_sessions()
+            }), 429  # Too Many Requests
+        
+        voice_session = get_session(session_id)
+        
+        if voice_session:
+            voice_session.client_info['language'] = language
+            voice_session.client_info['created_by'] = session.get('username', 'unknown')
+        
+        # Generate URLs
+        base_url = request.host_url.rstrip('/')
+        session_url = f"{base_url}/voice-session/{session_id}"
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={session_url}"
+        
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'session_url': session_url,
+            'qr_url': qr_url,
+            'status': 'waiting',
+            'expires_in_seconds': voice_session.time_remaining() if voice_session else 1800,
+            'active_sessions': get_active_session_count(),
+            'max_sessions': admin_config.get_max_sessions()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating voice session: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/voice/session/<session_id>', methods=['GET'])
+def get_voice_session_status(session_id):
+    """Get the status of a voice session"""
+    try:
+        voice_session = get_session(session_id)
+        
+        if not voice_session:
+            return jsonify({'error': 'Session not found'}), 404
+        
+        return jsonify({
+            'session_id': session_id,
+            'status': voice_session.status,
+            'created_at': voice_session.created_at.isoformat(),
+            'client_info': voice_session.client_info,
+            'conversation_count': len(voice_session.conversation_history),
+            'has_recommendations': len(voice_session.recommendations) > 0
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/voice/session/<session_id>/end', methods=['POST'])
+def end_voice_session(session_id):
+    """End a voice session"""
+    try:
+        # Cleanup voice agent if exists
+        if session_id in voice_agents:
+            agent = voice_agents[session_id]
+            asyncio.run(agent.disconnect())
+            del voice_agents[session_id]
+        
+        # End session
+        end_session(session_id)
+        
+        return jsonify({'success': True, 'message': 'Session ended'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/voice/sessions', methods=['GET'])
+@login_required
+def list_voice_sessions():
+    """List all active voice sessions (admin endpoint)"""
+    try:
+        sessions = get_all_sessions_info()
+        return jsonify({
+            'success': True,
+            'active_count': get_active_session_count(),
+            'max_sessions': admin_config.get_max_sessions(),
+            'sessions': sessions
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/voice/cleanup', methods=['POST'])
+@login_required  
+def cleanup_sessions():
+    """Manually trigger cleanup of expired sessions"""
+    try:
+        cleaned = cleanup_expired_sessions()
+        return jsonify({
+            'success': True,
+            'cleaned_count': cleaned,
+            'remaining_active': get_active_session_count()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ========================================
+# Admin Panel Routes
+# ========================================
+
+@app.route('/api/admin/config', methods=['GET'])
+@admin_required
+def get_admin_config():
+    """Get full admin configuration"""
+    try:
+        config = admin_config.get_full_config()
+        config['is_admin'] = True
+        config['current_user'] = session.get('username')
+        return jsonify(config)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/voice-settings', methods=['GET', 'POST'])
+@admin_required
+def admin_voice_settings():
+    """Get or update voice agent settings"""
+    try:
+        if request.method == 'GET':
+            return jsonify(admin_config.get_voice_settings())
+        
+        data = request.get_json()
+        user = session.get('username', 'unknown')
+        
+        # Update voice_agent module's config dynamically
+        if 'max_concurrent_sessions' in data:
+            voice_agent.MAX_CONCURRENT_SESSIONS = data['max_concurrent_sessions']
+        if 'session_timeout_minutes' in data:
+            voice_agent.SESSION_TIMEOUT_MINUTES = data['session_timeout_minutes']
+        
+        updated = admin_config.update_voice_settings(data, user)
+        return jsonify({'success': True, 'settings': updated})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/ranking-weights', methods=['GET', 'POST'])
+@admin_required
+def admin_ranking_weights():
+    """Get or update ranking weights"""
+    try:
+        if request.method == 'GET':
+            return jsonify({
+                'weights': admin_config.get_ranking_weights(),
+                'presets': admin_config.get_weight_presets()
+            })
+        
+        data = request.get_json()
+        user = session.get('username', 'unknown')
+        
+        if 'preset' in data:
+            # Apply a preset
+            updated = admin_config.apply_weight_preset(data['preset'], user)
+        elif 'reset' in data and data['reset']:
+            # Reset to defaults
+            updated = admin_config.reset_ranking_weights(user)
+        else:
+            # Update individual weights
+            updated = admin_config.update_ranking_weights(data.get('weights', {}), user)
+        
+        return jsonify({'success': True, 'weights': updated})
+        
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-settings', methods=['GET', 'POST'])
+@admin_required
+def admin_system_settings():
+    """Get or update system settings"""
+    try:
+        if request.method == 'GET':
+            return jsonify(admin_config.get_system_settings())
+        
+        data = request.get_json()
+        user = session.get('username', 'unknown')
+        updated = admin_config.update_system_settings(data, user)
+        return jsonify({'success': True, 'settings': updated})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/events', methods=['GET', 'POST'])
+@admin_required
+def admin_events():
+    """List events or create new event"""
+    try:
+        if request.method == 'GET':
+            events = admin_config.get_all_events()
+            base_url = request.host_url.rstrip('/')
+            
+            events_with_qr = []
+            for e in events:
+                event_dict = e.to_dict()
+                # Generate single QR code URL for this event
+                session_url = f"{base_url}/event/{e.event_id}"
+                event_dict['session_url'] = session_url
+                event_dict['qr_url'] = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={session_url}"
+                events_with_qr.append(event_dict)
+            
+            return jsonify({
+                'events': events_with_qr,
+                'total': len(events),
+                'active': len([e for e in events if e.is_active and not e.is_expired()])
+            })
+        
+        # Create new event
+        data = request.get_json()
+        user = session.get('username', 'unknown')
+        
+        event = admin_config.create_event(
+            name=data['name'],
+            description=data.get('description', ''),
+            max_concurrent_sessions=data.get('max_concurrent_sessions', 10),
+            duration_hours=data.get('duration_hours', 0),
+            duration_minutes=data.get('duration_minutes', 60),
+            user=user
+        )
+        
+        # Generate single QR code URL
+        base_url = request.host_url.rstrip('/')
+        session_url = f"{base_url}/event/{event.event_id}"
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={session_url}"
+        
+        return jsonify({
+            'success': True,
+            'event': event.to_dict(),
+            'session_url': session_url,
+            'qr_url': qr_url
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/events/<event_id>', methods=['GET', 'PUT', 'DELETE'])
+@admin_required
+def admin_event_detail(event_id):
+    """Get, update, or delete a specific event"""
+    try:
+        if request.method == 'GET':
+            event = admin_config.get_event(event_id)
+            if not event:
+                return jsonify({'error': 'Event not found'}), 404
+            
+            # Add QR URL
+            base_url = request.host_url.rstrip('/')
+            session_url = f"{base_url}/event/{event_id}"
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={session_url}"
+            
+            return jsonify({
+                'event': event.to_dict(),
+                'session_url': session_url,
+                'qr_url': qr_url
+            })
+        
+        elif request.method == 'PUT':
+            # Update event
+            data = request.get_json()
+            user = session.get('username', 'unknown')
+            
+            updated_event = admin_config.update_event(event_id, data, user)
+            if not updated_event:
+                return jsonify({'error': 'Event not found'}), 404
+            
+            base_url = request.host_url.rstrip('/')
+            session_url = f"{base_url}/event/{event_id}"
+            
+            return jsonify({
+                'success': True,
+                'event': updated_event.to_dict(),
+                'session_url': session_url,
+                'qr_url': f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={session_url}"
+            })
+        
+        # DELETE
+        user = session.get('username', 'unknown')
+        if admin_config.delete_event(event_id, user):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Event not found'}), 404
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/events/<event_id>/deactivate', methods=['POST'])
+@admin_required
+def admin_deactivate_event(event_id):
+    """Deactivate an event (stop accepting new sessions)"""
+    try:
+        user = session.get('username', 'unknown')
+        if admin_config.deactivate_event(event_id, user):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Event not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/audit-log', methods=['GET'])
+@admin_required
+def admin_audit_log():
+    """Get audit log"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        log = admin_config.get_audit_log(limit)
+        return jsonify({'log': log, 'count': len(log)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/export-config', methods=['GET'])
+@admin_required
+def admin_export_config():
+    """Export configuration as JSON"""
+    try:
+        config = admin_config.export_config()
+        return jsonify(config)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/import-config', methods=['POST'])
+@admin_required
+def admin_import_config():
+    """Import configuration from JSON"""
+    try:
+        data = request.get_json()
+        user = session.get('username', 'unknown')
+        
+        if admin_config.import_config(data, user):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Failed to import configuration'}), 400
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/voice-session/<session_id>')
+def voice_session_page(session_id):
+    """Client-facing page for voice consultation"""
+    voice_session = get_session(session_id)
+    
+    if not voice_session:
+        return render_template('voice_session_error.html', 
+                             error='Session not found. It may have expired or been deleted.'), 404
+    
+    if voice_session.status == 'expired':
+        return render_template('voice_session_error.html',
+                             error='This session has expired. Please ask for a new QR code.'), 410
+    
+    if voice_session.status == 'ended':
+        return render_template('voice_session_error.html',
+                             error='This session has ended. Thank you for using our service!'), 410
+    
+    if voice_session.status == 'connected':
+        return render_template('voice_session_error.html',
+                             error='This session is already in use by another client.'), 409
+    
+    return render_template('voice_session.html', 
+                         session_id=session_id,
+                         sample_rate=SAMPLE_RATE,
+                         time_remaining=voice_session.time_remaining())
+
+
+@app.route('/event/<event_id>')
+def event_session_page(event_id):
+    """Client-facing page for event-based voice consultation"""
+    event = admin_config.get_event(event_id)
+    
+    if not event:
+        return render_template('voice_session_error.html',
+                             error='Event not found.'), 404
+    
+    if not event.is_active:
+        return render_template('voice_session_error.html',
+                             error='This event is no longer active.'), 410
+    
+    if event.is_expired():
+        return render_template('voice_session_error.html',
+                             error='This event has expired.'), 410
+    
+    if not event.can_accept_session():
+        return render_template('voice_session_error.html',
+                             error=f'This event has reached its maximum capacity ({event.max_concurrent_sessions} concurrent sessions). Please try again in a few minutes.'), 503
+    
+    # Create a new voice session for this event
+    session_id, error = create_session()
+    if error:
+        return render_template('voice_session_error.html',
+                             error=error), 503
+    
+    # Link session to event
+    success, err_msg = admin_config.start_event_session(event_id, session_id)
+    if not success:
+        end_session(session_id)
+        return render_template('voice_session_error.html',
+                             error=err_msg), 503
+    
+    # Store event_id in session for cleanup
+    voice_session = get_session(session_id)
+    if voice_session:
+        voice_session.client_info['event_id'] = event_id
+        voice_session.client_info['event_name'] = event.name
+    
+    return render_template('voice_session.html',
+                         session_id=session_id,
+                         sample_rate=SAMPLE_RATE,
+                         time_remaining=event.time_remaining(),
+                         event_name=event.name)
+
+
+# ========================================
+# Socket.IO Events for Voice Agent
+# ========================================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection"""
+    logger.info(f"Client connected: {request.sid}")
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection"""
+    logger.info(f"Client disconnected: {request.sid}")
+
+
+@socketio.on('join_session')
+def handle_join_session(data):
+    """Client joins a voice session room"""
+    session_id = data.get('session_id')
+    client_type = data.get('client_type', 'client')  # 'client' or 'consultant'
+    
+    if not session_id:
+        emit('error', {'message': 'Session ID required'})
+        return
+    
+    voice_session = get_session(session_id)
+    if not voice_session:
+        emit('error', {'message': 'Session not found'})
+        return
+    
+    # Join the room
+    join_room(session_id)
+    
+    # Update session status
+    if client_type == 'client':
+        voice_session.status = 'connected'
+        # Notify consultant that client connected
+        emit('client_connected', {
+            'session_id': session_id,
+            'timestamp': datetime.now().isoformat()
+        }, room=session_id)
+    
+    emit('joined', {
+        'session_id': session_id,
+        'status': voice_session.status
+    })
+    
+    logger.info(f"{client_type} joined session {session_id}")
+
+
+@socketio.on('leave_session')
+def handle_leave_session(data):
+    """Client leaves a voice session room"""
+    session_id = data.get('session_id')
+    if session_id:
+        leave_room(session_id)
+        emit('left', {'session_id': session_id})
+
+
+@socketio.on('start_voice')
+def handle_start_voice(data):
+    """Initialize Gemini voice agent for a session"""
+    session_id = data.get('session_id')
+    language = data.get('language', 'english')
+    
+    voice_session = get_session(session_id)
+    if not voice_session:
+        emit('error', {'message': 'Session not found'})
+        return
+    
+    # Get API key
+    api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+    if not api_key:
+        emit('error', {'message': 'Gemini API key not configured'})
+        return
+    
+    try:
+        # Create voice agent
+        agent = GeminiVoiceAgent(api_key, session_id, language)
+        voice_agents[session_id] = agent
+        
+        # Set up callbacks
+        def on_message(role, text):
+            socketio.emit('voice_message', {
+                'role': role,
+                'text': text,
+                'timestamp': datetime.now().isoformat()
+            }, room=session_id)
+            
+            # Store in history
+            voice_session.conversation_history.append({
+                'role': role,
+                'text': text,
+                'timestamp': datetime.now().isoformat()
+            })
+        
+        def on_audio(audio_data):
+            # Send audio as base64
+            socketio.emit('voice_audio', {
+                'audio': base64.b64encode(audio_data).decode('utf-8'),
+                'sample_rate': SAMPLE_RATE
+            }, room=session_id)
+        
+        def on_status(status, message):
+            voice_session.status = status
+            socketio.emit('voice_status', {
+                'status': status,
+                'message': message
+            }, room=session_id)
+        
+        # Connect to Gemini in a background thread
+        def connect_and_start():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            async def run():
+                agent.on_message_callback = lambda r, t: asyncio.create_task(
+                    asyncio.to_thread(on_message, r, t)
+                )
+                agent.on_audio_callback = lambda a: asyncio.create_task(
+                    asyncio.to_thread(on_audio, a)
+                )
+                agent.on_status_callback = lambda s, m: asyncio.create_task(
+                    asyncio.to_thread(on_status, s, m)
+                )
+                
+                connected = await agent.connect()
+                if connected:
+                    socketio.emit('voice_ready', {
+                        'session_id': session_id,
+                        'message': 'Voice agent ready'
+                    }, room=session_id)
+                    
+                    voice_session.status = 'collecting'
+                    await agent.start_conversation()
+                    await agent.receive_loop()
+                else:
+                    socketio.emit('error', {
+                        'message': 'Failed to connect to Gemini'
+                    }, room=session_id)
+            
+            loop.run_until_complete(run())
+            loop.close()
+        
+        # Start in background thread
+        thread = threading.Thread(target=connect_and_start)
+        thread.daemon = True
+        thread.start()
+        
+        emit('voice_initializing', {
+            'session_id': session_id,
+            'message': 'Connecting to AI voice agent...'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error starting voice agent: {e}")
+        emit('error', {'message': str(e)})
+
+
+@socketio.on('voice_input')
+def handle_voice_input(data):
+    """Handle voice/audio input from client"""
+    session_id = data.get('session_id')
+    audio_data = data.get('audio')  # Base64 encoded
+    text_input = data.get('text')
+    
+    if session_id not in voice_agents:
+        emit('error', {'message': 'Voice agent not initialized'})
+        return
+    
+    agent = voice_agents[session_id]
+    
+    try:
+        if audio_data:
+            # Decode and send audio
+            audio_bytes = base64.b64decode(audio_data)
+            asyncio.run(agent.send_audio(audio_bytes))
+        elif text_input:
+            # Send text input
+            asyncio.run(agent.send_text(text_input))
+            
+            # Also emit to room for display
+            voice_session = get_session(session_id)
+            if voice_session:
+                voice_session.conversation_history.append({
+                    'role': 'user',
+                    'text': text_input,
+                    'timestamp': datetime.now().isoformat()
+                })
+            
+            emit('voice_message', {
+                'role': 'user',
+                'text': text_input,
+                'timestamp': datetime.now().isoformat()
+            }, room=session_id)
+            
+    except Exception as e:
+        logger.error(f"Error processing voice input: {e}")
+        emit('error', {'message': str(e)})
+
+
+@socketio.on('stop_voice')
+def handle_stop_voice(data):
+    """Stop the voice agent"""
+    session_id = data.get('session_id')
+    
+    if session_id in voice_agents:
+        agent = voice_agents[session_id]
+        asyncio.run(agent.disconnect())
+        del voice_agents[session_id]
+    
+    voice_session = get_session(session_id)
+    if voice_session:
+        voice_session.status = 'ended'
+    
+    emit('voice_stopped', {'session_id': session_id}, room=session_id)
+
+
 if __name__ == '__main__':
     print("\n" + "="*80)
     print("SENIOR LIVING RECOMMENDATION SYSTEM - WEB INTERFACE")
     print("="*80)
-    print("\nStarting AI Sales Assistant server...")
+    print("\nStarting AI Sales Assistant server with Voice Agent support...")
     print("Open your browser to: http://localhost:5050")
+    print("\nVoice Agent requires GEMINI_API_KEY environment variable")
     print("\nPress Ctrl+C to stop the server")
     print("="*80 + "\n")
 
-    app.run(debug=False, host='0.0.0.0', port=5050)
+    # Use socketio.run for WebSocket support
+    socketio.run(app, debug=False, host='0.0.0.0', port=5050, allow_unsafe_werkzeug=True)
