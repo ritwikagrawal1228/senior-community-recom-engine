@@ -1956,21 +1956,9 @@ def handle_stop_voice(data):
     
     if session_id in voice_agents:
         agent = voice_agents[session_id]
-        loop = voice_loops.get(session_id)
         
-        # Disconnect using the session's event loop
-        if loop and loop.is_running():
-            future = asyncio.run_coroutine_threadsafe(agent.disconnect(), loop)
-            try:
-                future.result(timeout=5)  # Wait max 5 seconds
-            except Exception as e:
-                logger.error(f"Error disconnecting voice agent: {e}")
-        else:
-            # Fallback - create new loop just to disconnect
-            try:
-                asyncio.run(agent.disconnect())
-            except:
-                pass
+        # Disconnect is synchronous - just call it directly
+        agent.disconnect()
         
         del voice_agents[session_id]
     

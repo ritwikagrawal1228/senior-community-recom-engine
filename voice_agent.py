@@ -332,21 +332,39 @@ class GeminiVoiceAgent:
             try:
                 turn = self.session.receive()
                 async for response in turn:
+                    # Access parts directly to avoid SDK warnings
                     # Handle audio data - send immediately to client (like reference's onmessage)
-                    if response.data:
+                    audio_data = None
+                    text_data = None
+                    
+                    # Check for audio parts
+                    if hasattr(response, 'parts'):
+                        for part in response.parts:
+                            if hasattr(part, 'inline_data') and part.inline_data:
+                                audio_data = part.inline_data.data
+                            elif hasattr(part, 'text') and part.text:
+                                text_data = part.text
+                    else:
+                        # Fallback to properties if parts not available
+                        if hasattr(response, 'data') and response.data:
+                            audio_data = response.data
+                        if hasattr(response, 'text') and response.text:
+                            text_data = response.text
+                    
+                    # Handle audio data
+                    if audio_data:
                         if self.on_audio_callback:
-                            await self.on_audio_callback(response.data)
+                            await self.on_audio_callback(audio_data)
                     
                     # Handle text
-                    if response.text:
-                        accumulated_text += response.text
-                        logger.debug(f"Received text chunk: {response.text[:50]}...")
+                    if text_data:
+                        accumulated_text += text_data
+                        logger.debug(f"Received text chunk: {text_data[:50]}...")
                         
                         if self.on_message_callback:
-                            await self.on_message_callback('agent', response.text)
+                            await self.on_message_callback('agent', text_data)
                     
                     # Handle interruptions (like reference checks for interrupted flag)
-                    # Note: Python SDK may handle this differently, but we check anyway
                     if hasattr(response, 'interrupted') and response.interrupted:
                         logger.info("Response interrupted by user")
                         # Clear any pending audio if needed
