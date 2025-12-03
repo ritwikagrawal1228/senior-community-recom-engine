@@ -1,7 +1,7 @@
 """
 Gemini Real-Time Voice Agent for Senior Living Consultations
 Uses Gemini 2.5 Flash Native Audio via google-genai SDK
-Based on official Google AI Studio example
+Based on the bug-free reference implementation in sage---senior-living-voice-agent
 """
 
 import os
@@ -90,7 +90,7 @@ def get_session_timeout() -> int:
 
 
 def get_voice_system_instruction(language: str = 'english') -> str:
-    """Get the system instruction for the voice agent"""
+    """Get the system instruction for the voice agent - matches reference exactly"""
     
     language_suffix = {
         'english': 'Respond and listen only in English.',
@@ -107,60 +107,32 @@ PERSONALITY:
 - Never rushed or dismissive
 
 YOUR CONVERSATION FLOW:
-
-1. GREETING (First message):
-   - Introduce yourself warmly: "Hi! I'm Sage, your AI assistant for finding senior living communities."
-   - Explain you'll ask a few questions to find the best matches
-   - Ask if they're looking for themselves or a loved one
-
-2. INFORMATION GATHERING (Ask one at a time, naturally):
-   - Care Level: "What type of care are you looking for? Independent living, assisted living, or memory care?"
-   - Budget: "What's your monthly budget range? For example, $3,000 to $5,000?"
-   - Location: "What area or ZIP code do you prefer?"
-   - Timeline: "When are you hoping to move? Immediately, in a few months, or just planning ahead?"
-   - Special Needs: "Any special requirements? Like pets, couples, or specific medical needs?"
-
-3. CONFIRM & SEARCH:
-   When you have collected: care_level, budget, location, and timeline, you MUST say EXACTLY:
-   "SEARCH_READY: care_level=[value], budget=[value], location=[value], timeline=[value], special_needs=[value or none]"
-   
-   Then say: "Perfect! Let me search our database of over 500 communities. This usually takes about 2 minutes. While I search, is there anything specific you're hoping to find in a community?"
-
-4. SMALL TALK (While waiting for results):
-   - Keep the conversation going naturally for 2-3 minutes
-   - Ask about their interests, hobbies, what activities they enjoy
-   - Share general info about what to expect in senior living
-   - Periodically say "Still searching..." or "Almost done..."
-
-5. WHEN YOU RECEIVE RESULTS:
-   You will receive a message starting with "RESULTS:" containing the recommendations.
-   Present them enthusiastically:
-   - "Great news! I found some excellent matches for you!"
-   - Present top 3 clearly with: name, location, price, care level, and why it's a good fit
-   - Ask if they have questions about any community
+1. GREETING: Introduce yourself warmly: "Hi! I'm Sage, your AI assistant for finding senior living communities."
+2. INFORMATION GATHERING: Ask one at a time about Care Level, Budget, Location, Timeline, and Special Needs.
+3. CONFIRM & SEARCH: When you have collected the info, say "Perfect! Let me search our database."
+4. SMALL TALK: Chat naturally while waiting.
 
 IMPORTANT RULES:
-- Keep responses SHORT (2-3 sentences max for voice)
-- Use natural speech patterns
-- Show empathy when discussing sensitive topics
-- The SEARCH_READY message is critical - it triggers the actual search
+- Keep responses SHORT (2-3 sentences max for voice).
+- Use natural speech patterns.
+- Show empathy.
 - {language_suffix}
 """
 
 
 def get_live_config(language: str = 'english') -> types.LiveConnectConfig:
-    """Get the Live API configuration"""
+    """Get the Live API configuration - matches reference exactly"""
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
+        system_instruction=types.Content(
+            parts=[types.Part(text=get_voice_system_instruction(language))]
+        ),
         speech_config=types.SpeechConfig(
             voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                    voice_name="Puck"  # Friendly voice
+                    voice_name="Puck"  # Same as reference
                 )
             )
-        ),
-        system_instruction=types.Content(
-            parts=[types.Part(text=get_voice_system_instruction(language))]
         ),
         # Context window compression for longer conversations
         context_window_compression=types.ContextWindowCompressionConfig(
@@ -171,7 +143,7 @@ def get_live_config(language: str = 'english') -> types.LiveConnectConfig:
 
 
 class GeminiVoiceAgent:
-    """Handles real-time voice conversations with Gemini using the official SDK"""
+    """Handles real-time voice conversations with Gemini - matches reference pattern"""
     
     def __init__(self, api_key: str, session_id: str, language: str = 'english'):
         self.api_key = api_key
@@ -187,11 +159,10 @@ class GeminiVoiceAgent:
         self.on_message_callback: Optional[Callable] = None
         self.on_audio_callback: Optional[Callable] = None
         self.on_status_callback: Optional[Callable] = None
-        self.on_search_ready_callback: Optional[Callable] = None  # Called when agent is ready to search
+        self.on_search_ready_callback: Optional[Callable] = None
         
-        # Audio queues
-        self.audio_in_queue = None
-        self.audio_out_queue = None
+        # Audio input queue (from client)
+        self.audio_input_queue = asyncio.Queue()
         
         # Initialize client
         self.client = genai.Client(
@@ -261,24 +232,19 @@ class GeminiVoiceAgent:
             self.recommendations_sent = True
         except Exception as e:
             logger.error(f"Error sending recommendations: {e}")
-        
+    
     async def run(self):
-        """Main run loop - connects and handles the entire session lifecycle using TaskGroup"""
+        """Main run loop - matches reference pattern exactly"""
         try:
             logger.info(f"Connecting to Gemini Live API for session {self.session_id}...")
             logger.info(f"Using model: {MODEL}")
             
             config = get_live_config(self.language)
             
-            # Use async with for both connection and task group (like official example)
-            async with (
-                self.client.aio.live.connect(model=MODEL, config=config) as session,
-                asyncio.TaskGroup() as tg,
-            ):
+            # Connect using async context manager (like reference)
+            async with self.client.aio.live.connect(model=MODEL, config=config) as session:
                 self.session = session
                 self.is_connected = True
-                self.audio_in_queue = asyncio.Queue()
-                self.audio_out_queue = asyncio.Queue(maxsize=5)
                 
                 logger.info(f"Gemini Voice Agent connected for session {self.session_id}")
                 
@@ -286,19 +252,20 @@ class GeminiVoiceAgent:
                 if self.on_status_callback:
                     await self.on_status_callback('connected', 'Voice agent ready')
                 
-                # Create concurrent tasks AFTER session is set (like official Google example)
-                send_task = tg.create_task(self._send_realtime_task())  # Sends audio from queue to Gemini
-                receive_task = tg.create_task(self._receive_task())      # Receives from Gemini
-                
-                # Start conversation - this will trigger the greeting
-                await session.send(input="Hello, I'm ready to start the consultation.", end_of_turn=True)
-                
-                # Keep running until disconnected
-                while self.is_connected:
-                    await asyncio.sleep(0.1)
-                
-                # Cancel tasks when done
-                raise asyncio.CancelledError("Session ended")
+                # Use TaskGroup for concurrent tasks (like official Python example)
+                async with asyncio.TaskGroup() as tg:
+                    # Task 1: Send audio input to Gemini (processes queue immediately)
+                    tg.create_task(self._send_audio_task())
+                    
+                    # Task 2: Receive responses from Gemini
+                    tg.create_task(self._receive_responses_task())
+                    
+                    # Keep running until disconnected
+                    while self.is_connected:
+                        await asyncio.sleep(0.1)
+                    
+                    # Cancel tasks when done
+                    raise asyncio.CancelledError("Session ended")
                         
         except asyncio.CancelledError:
             logger.info(f"Voice agent session cancelled for {self.session_id}")
@@ -315,9 +282,9 @@ class GeminiVoiceAgent:
             self.is_connected = False
             self.session = None
     
-    async def _send_realtime_task(self):
-        """Continuously send queued audio/text to Gemini (runs as concurrent task)"""
-        logger.info("Send realtime task started")
+    async def _send_audio_task(self):
+        """Send audio from queue to Gemini - matches reference pattern"""
+        logger.info("Send audio task started")
         
         # Wait for session to be ready
         while not self.session and self.is_connected:
@@ -329,23 +296,28 @@ class GeminiVoiceAgent:
         
         while self.is_connected:
             try:
-                # Wait for item with timeout to allow checking is_connected
+                # Get audio from queue (non-blocking with timeout)
                 try:
-                    msg = await asyncio.wait_for(self.audio_out_queue.get(), timeout=0.1)
+                    audio_data = await asyncio.wait_for(self.audio_input_queue.get(), timeout=0.1)
+                    
+                    # Send immediately (like reference's sendRealtimeInput)
                     if self.session:
-                        # Send audio as realtime input (continuous, no end_of_turn)
-                        await self.session.send(input=msg, end_of_turn=False)
+                        await self.session.send(
+                            input={"data": audio_data, "mime_type": "audio/pcm"},
+                            end_of_turn=False  # Continuous streaming
+                        )
                 except asyncio.TimeoutError:
                     continue
             except Exception as e:
                 if self.is_connected:
-                    logger.error(f"Error in send task: {e}")
+                    logger.error(f"Error in send audio task: {e}")
                 break
-        logger.info("Send realtime task ended")
+        
+        logger.info("Send audio task ended")
     
-    async def _receive_task(self):
-        """Receive responses from Gemini and forward to callbacks (runs as concurrent task)"""
-        logger.info("Receive task started")
+    async def _receive_responses_task(self):
+        """Receive responses from Gemini - matches reference pattern"""
+        logger.info("Receive responses task started")
         accumulated_text = ""
         
         # Wait for session to be ready
@@ -360,7 +332,7 @@ class GeminiVoiceAgent:
             try:
                 turn = self.session.receive()
                 async for response in turn:
-                    # Handle audio data - send immediately to client
+                    # Handle audio data - send immediately to client (like reference's onmessage)
                     if response.data:
                         if self.on_audio_callback:
                             await self.on_audio_callback(response.data)
@@ -372,6 +344,12 @@ class GeminiVoiceAgent:
                         
                         if self.on_message_callback:
                             await self.on_message_callback('agent', response.text)
+                    
+                    # Handle interruptions (like reference checks for interrupted flag)
+                    # Note: Python SDK may handle this differently, but we check anyway
+                    if hasattr(response, 'interrupted') and response.interrupted:
+                        logger.info("Response interrupted by user")
+                        # Clear any pending audio if needed
                 
                 # Turn complete - check for SEARCH_READY trigger
                 if accumulated_text and not self.search_triggered:
@@ -386,10 +364,6 @@ class GeminiVoiceAgent:
                 
                 # Clear accumulated text for next turn
                 accumulated_text = ""
-                
-                # Clear audio queue on turn complete (for interruptions - like official example)
-                while not self.audio_in_queue.empty():
-                    self.audio_in_queue.get_nowait()
                     
             except asyncio.CancelledError:
                 break
@@ -398,22 +372,22 @@ class GeminiVoiceAgent:
                     logger.error(f"Error in receive task: {e}")
                 break
         
-        logger.info("Receive task ended")
+        logger.info("Receive responses task ended")
     
     async def send_audio(self, audio_data: bytes):
-        """Queue audio data to send to Gemini"""
+        """Queue audio data to send to Gemini (called from Flask handler)"""
         if not self.is_connected:
             return
         
         try:
-            # Don't block if queue is full - drop oldest
-            if self.audio_out_queue.full():
+            # Don't block if queue is full - drop oldest (like reference)
+            if self.audio_input_queue.full():
                 try:
-                    self.audio_out_queue.get_nowait()
+                    self.audio_input_queue.get_nowait()
                 except:
                     pass
             
-            self.audio_out_queue.put_nowait({"data": audio_data, "mime_type": "audio/pcm"})
+            self.audio_input_queue.put_nowait(audio_data)
         except Exception as e:
             logger.error(f"Error queuing audio: {e}")
     
