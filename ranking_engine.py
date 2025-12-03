@@ -504,10 +504,14 @@ class GeminiRanker(RankingDimension):
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": self.app_url,
-            "X-Title": self.app_name
+            "Content-Type": "application/json"
         }
+        
+        # Add optional attribution headers only if configured
+        if self.app_url:
+            headers["HTTP-Referer"] = self.app_url
+        if self.app_name:
+            headers["X-Title"] = self.app_name
 
         payload = {
             "model": self.model_name,
