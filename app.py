@@ -1667,6 +1667,8 @@ def handle_start_voice(data):
         
         async def on_status(status, message):
             voice_session.status = status
+            if status == 'interrupted':
+                socketio.emit('voice_interrupted', {}, room=session_id)
             socketio.emit('voice_status', {
                 'status': status,
                 'message': message
