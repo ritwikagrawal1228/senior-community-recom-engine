@@ -30,6 +30,12 @@ warnings.filterwarnings('ignore', category=UserWarning, module='google_genai')
 
 logger = logging.getLogger(__name__)
 
+# Suppress warnings from google_genai SDK logger
+# These warnings are about accessing .text/.data on multi-part responses
+# We access parts directly, so these warnings are not relevant
+google_genai_logger = logging.getLogger('google_genai.types')
+google_genai_logger.setLevel(logging.ERROR)  # Only show errors, suppress warnings
+
 # Audio configuration
 SEND_SAMPLE_RATE = 16000   # Input audio must be 16kHz
 RECEIVE_SAMPLE_RATE = 24000  # Output audio is 24kHz
