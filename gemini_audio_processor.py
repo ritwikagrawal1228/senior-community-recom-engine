@@ -4,6 +4,8 @@ Handles direct audio file processing with Gemini's native audio support
 """
 import os
 import json
+import time
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 from google import genai
@@ -12,6 +14,8 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiAudioProcessor:
@@ -111,13 +115,17 @@ class GeminiAudioProcessor:
             # Generate content with audio + extraction prompt
             extraction_prompt = self._create_extraction_prompt(language)
 
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=[extraction_prompt, audio_file],
-                config=types.GenerateContentConfig(
-                    temperature=0.0,  # Zero temperature for maximum consistency
-                    response_mime_type="application/json"
-                )
+            # Retry logic with exponential backoff for API overload errors
+            response = self._retry_api_call(
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=[extraction_prompt, audio_file],
+                    config=types.GenerateContentConfig(
+                        temperature=0.0,  # Zero temperature for maximum consistency
+                        response_mime_type="application/json"
+                    )
+                ),
+                operation_name="audio processing"
             )
 
             result_text = response.text if hasattr(response, 'text') and response.text else None
@@ -163,13 +171,17 @@ class GeminiAudioProcessor:
             extraction_prompt = self._create_extraction_prompt(language)
             full_prompt = extraction_prompt + "\n\nCLIENT CONVERSATION:\n" + text
 
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.1,
-                    response_mime_type="application/json"
-                )
+            # Retry logic with exponential backoff for API overload errors
+            response = self._retry_api_call(
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    )
+                ),
+                operation_name="text processing"
             )
 
             result_text = response.text if hasattr(response, 'text') and response.text else None
@@ -188,6 +200,67 @@ class GeminiAudioProcessor:
 
         except Exception as e:
             raise RuntimeError(f"Failed to process text: {str(e)}") from e
+
+    def _retry_api_call(self, api_call_func, operation_name: str = "API call", max_retries: int = 5, initial_delay: float = 1.0):
+        """
+        Retry API call with exponential backoff for transient errors
+        
+        Args:
+            api_call_func: Function that makes the API call (lambda)
+            operation_name: Name of operation for logging
+            max_retries: Maximum number of retry attempts
+            initial_delay: Initial delay in seconds before first retry
+            
+        Returns:
+            API response
+            
+        Raises:
+            RuntimeError: If all retries fail
+        """
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                return api_call_func()
+            except Exception as e:
+                last_exception = e
+                error_str = str(e).lower()
+                
+                # Check if it's a retryable error (503, 429, overload, unavailable)
+                is_retryable = (
+                    '503' in error_str or
+                    '429' in error_str or
+                    'unavailable' in error_str or
+                    'overloaded' in error_str or
+                    'rate limit' in error_str or
+                    'quota' in error_str or
+                    'too many requests' in error_str
+                )
+                
+                if not is_retryable:
+                    # Not a retryable error, raise immediately
+                    raise
+                
+                # If this is the last attempt, don't wait
+                if attempt == max_retries - 1:
+                    break
+                
+                # Calculate exponential backoff delay
+                delay = initial_delay * (2 ** attempt)
+                # Cap delay at 30 seconds
+                delay = min(delay, 30.0)
+                
+                logger.warning(
+                    f"⚠️ {operation_name} failed (attempt {attempt + 1}/{max_retries}): {str(e)[:100]}... "
+                    f"Retrying in {delay:.1f}s..."
+                )
+                
+                time.sleep(delay)
+        
+        # All retries exhausted
+        error_msg = f"{operation_name} failed after {max_retries} attempts"
+        logger.error(f"❌ {error_msg}: {str(last_exception)}")
+        raise RuntimeError(f"{error_msg}. Last error: {str(last_exception)}") from last_exception
 
     def _create_extraction_prompt(self, language: str = 'english') -> str:
         """Create the extraction prompt for Gemini"""

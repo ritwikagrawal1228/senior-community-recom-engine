@@ -502,23 +502,32 @@ class GeminiRanker(RankingDimension):
                 )
                 return json.loads(response.text)
             except Exception as e:
-                error_msg = str(e)
+                error_msg = str(e).lower()
 
-                # Check if it's a timeout or rate limit error
-                if '504' in error_msg or 'timeout' in error_msg.lower():
-                    if attempt < max_retries - 1:
-                        wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
-                        print(f"  [RETRY] {self.name} timed out, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})...")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        print(f"  [WARNING] Gemini API error in {self.name} after {max_retries} attempts: {e}")
-                        return {"rankings": []}
-                elif '429' in error_msg or 'quota' in error_msg.lower():
-                    print(f"  [WARNING] Gemini API quota exceeded in {self.name}: {e}")
-                    return {"rankings": []}
+                # Check if it's a retryable error (503, 504, 429, timeout, overload, unavailable)
+                is_retryable = (
+                    '503' in error_msg or
+                    '504' in error_msg or
+                    '429' in error_msg or
+                    'timeout' in error_msg or
+                    'unavailable' in error_msg or
+                    'overloaded' in error_msg or
+                    'rate limit' in error_msg or
+                    'quota' in error_msg or
+                    'too many requests' in error_msg
+                )
+
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
+                    wait_time = min(wait_time, 30.0)  # Cap at 30 seconds
+                    print(f"  [RETRY] {self.name} API error (attempt {attempt + 1}/{max_retries}): {str(e)[:80]}... Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
                 else:
-                    print(f"  [WARNING] Gemini API error in {self.name}: {e}")
+                    if is_retryable:
+                        print(f"  [WARNING] {self.name} API error after {max_retries} retries: {e}")
+                    else:
+                        print(f"  [WARNING] {self.name} API error (non-retryable): {e}")
                     return {"rankings": []}
 
         return {"rankings": []}
