@@ -39,8 +39,10 @@ class GeminiAudioProcessor:
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         self.model_name = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
         
-        # OpenRouter requires HTTP-Referer header
-        self.app_url = os.getenv('APP_URL', 'https://your-app.com')
+        # OpenRouter attribution headers (for app visibility and analytics)
+        # HTTP-Referer: Identifies your app in OpenRouter's public rankings
+        # X-Title: Sets your app's display name (required if using localhost)
+        self.app_url = os.getenv('APP_URL', 'http://localhost:5050')  # Default to localhost for dev
         self.app_name = os.getenv('APP_NAME', 'Senior Living Recommendations')
 
     def process_audio_file(self, audio_path: str, language: str = 'english') -> Dict[str, Any]:
@@ -212,8 +214,8 @@ class GeminiAudioProcessor:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": self.app_url,  # Required by OpenRouter
-            "X-Title": self.app_name  # Optional but recommended
+            "HTTP-Referer": self.app_url,  # Required: Identifies your app in OpenRouter rankings
+            "X-Title": self.app_name  # Required if using localhost, optional otherwise
         }
         
         payload = {

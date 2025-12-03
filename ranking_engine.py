@@ -479,8 +479,10 @@ class GeminiRanker(RankingDimension):
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         self.model_name = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
         
-        # OpenRouter requires HTTP-Referer header
-        self.app_url = os.getenv('APP_URL', 'https://your-app.com')
+        # OpenRouter attribution headers (for app visibility and analytics)
+        # HTTP-Referer: Identifies your app in OpenRouter's public rankings
+        # X-Title: Sets your app's display name (required if using localhost)
+        self.app_url = os.getenv('APP_URL', 'http://localhost:5050')  # Default to localhost for dev
         self.app_name = os.getenv('APP_NAME', 'Senior Living Recommendations')
 
     def _call_gemini(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Dict[str, Any]:
