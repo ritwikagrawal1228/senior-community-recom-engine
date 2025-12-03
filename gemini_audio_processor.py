@@ -80,11 +80,14 @@ class GeminiAudioProcessor:
             }
             mime_type = mime_type_map.get(file_ext, 'audio/mpeg')
             
-            # Upload audio file to Gemini using new client API with config
+            # Upload audio file to Gemini using new client API with config (with retry logic)
             try:
-                audio_file = self.client.files.upload(
-                    file=audio_path,
-                    config=types.UploadFileConfig(mime_type=mime_type)
+                audio_file = self._retry_api_call(
+                    lambda: self.client.files.upload(
+                        file=audio_path,
+                        config=types.UploadFileConfig(mime_type=mime_type)
+                    ),
+                    operation_name="file upload"
                 )
             except Exception as upload_error:
                 error_msg = str(upload_error)
@@ -96,7 +99,7 @@ class GeminiAudioProcessor:
                     )
                 raise
 
-            # Wait for file to become ACTIVE
+            # Wait for file to become ACTIVE (with retry logic for status checks)
             import time
             max_wait = 30  # seconds
             waited = 0
@@ -104,7 +107,19 @@ class GeminiAudioProcessor:
             while file_state != 'ACTIVE' and waited < max_wait:
                 time.sleep(1)
                 waited += 1
-                audio_file = self.client.files.get(name=audio_file.name)
+                try:
+                    audio_file = self._retry_api_call(
+                        lambda: self.client.files.get(name=audio_file.name),
+                        operation_name="file status check",
+                        max_retries=3,  # Fewer retries for status checks
+                        initial_delay=0.5  # Shorter delay for status checks
+                    )
+                except Exception as status_error:
+                    # If status check fails, log but continue waiting
+                    logger.warning(f"File status check failed (attempt {waited}/{max_wait}): {status_error}")
+                    if waited >= max_wait:
+                        raise RuntimeError(f"File status check failed after {max_wait} attempts: {status_error}")
+                    continue
                 file_state = getattr(audio_file.state, 'name', None) if hasattr(audio_file, 'state') else None
             
             file_state = getattr(audio_file.state, 'name', None) if hasattr(audio_file, 'state') else None
