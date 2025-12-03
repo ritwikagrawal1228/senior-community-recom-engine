@@ -1838,24 +1838,37 @@ def handle_start_voice(data):
                     # Extract recommendations from result (same format as audio/text)
                     recommendations = result.get('recommendations', [])[:5]
                     
-                    processing_time = (datetime.now() - start_time).total_seconds()
-                    logger.info(f"Got {len(recommendations)} recommendations in {processing_time:.1f}s")
+                    processing_time = result.get('performance_metrics', {}).get('timings', {}).get('e2e_total', 
+                        (datetime.now() - start_time).total_seconds())
+                    
+                    logger.info(f"Got {len(recommendations)} recommendations in {processing_time:.2f}s")
                     
                     # Store in session
                     voice_session.recommendations = recommendations
                     voice_session.status = 'results'
                     
-                    # ============ LOG TO DATABASE ============
+                    # Extract performance metrics (same as audio/text)
+                    perf = result.get('performance_metrics', {})
+                    timings = perf.get('timings', {})
+                    tokens = perf.get('token_counts', {})
+                    costs = perf.get('costs', {})
+                    
+                    # ============ LOG TO DATABASE (same as audio/text) ============
                     try:
                         run_log_id = run_logs_db.generate_run_id()
                         run_logs_db.save_run_log(
                             run_id=run_log_id,
                             input_type='voice_agent',
+                            language=voice_session.client_info.get('language', 'english'),
                             input_filename=f'voice_session:{session_id}',
                             transcription=transcription,
-                            client_info=client_requirements,
+                            client_info=result.get('client_info', client_requirements),
                             recommendations=recommendations,
-                            processing_time_seconds=processing_time,
+                            processing_time_seconds=timings.get('e2e_total', processing_time),
+                            tokens_used=tokens.get('total_tokens'),
+                            api_cost=costs.get('total_cost'),
+                            api_calls=perf.get('api_calls'),
+                            timing_breakdown=timings,
                             crm_pushed=False,  # Will update if CRM push succeeds
                             status='completed',
                             username=session.get('username', 'voice_client')
@@ -1865,23 +1878,15 @@ def handle_start_voice(data):
                         logger.error(f"Failed to save run log: {log_err}")
                         run_log_id = None
                     
-                    # ============ PUSH TO CRM (if enabled) ============
+                    # ============ PUSH TO CRM (same workflow as audio/text) ============
                     # Check if CRM push is enabled for this session
                     push_to_crm_enabled = voice_session.client_info.get('push_to_crm', True)
                     crm_result = None
                     
-                    if push_to_crm_enabled and recommendations:
+                    if push_to_crm_enabled and os.getenv('GOOGLE_SPREADSHEET_ID'):
                         try:
-                            from google_sheets_integration import push_to_crm
-                            crm_data = {
-                                'client_requirements': client_requirements,
-                                'recommendations': recommendations,
-                                'transcription': transcription[:500],  # First 500 chars
-                                'source': 'voice_agent',
-                                'session_id': session_id,
-                                'timestamp': datetime.now().isoformat()
-                            }
-                            crm_result = push_to_crm(crm_data)
+                            # Use the SAME result format as audio/text - ensures identical CRM push
+                            crm_result = push_to_crm(result)
                             logger.info(f"Pushed voice results to CRM: {crm_result}")
                             
                             # Update run log with CRM status
