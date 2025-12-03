@@ -1,0 +1,310 @@
+{
+  "voice_agent": {
+    "max_concurrent_sessions": 10,
+    "session_timeout_minutes": 30,
+    "default_language": "english",
+    "enable_voice_agent": true,
+    "push_to_crm": true
+  },
+  "ranking_weights": {
+    "business": 1.0,
+    "cost": 1.0,
+    "distance": 1.0,
+    "availability": 1.0,
+    "budget_efficiency": 1.0,
+    "couple": 1.0,
+    "amenity": 1.0,
+    "holistic": 1.0
+  },
+  "ranking_weights_presets": {
+    "balanced": {
+      "name": "Balanced",
+      "description": "Equal weight to all factors",
+      "weights": {
+        "business": 1.0,
+        "cost": 1.0,
+        "distance": 1.0,
+        "availability": 1.0,
+        "budget_efficiency": 1.0,
+        "couple": 1.0,
+        "amenity": 1.0,
+        "holistic": 1.0
+      }
+    },
+    "cost_focused": {
+      "name": "Cost Focused",
+      "description": "Prioritizes budget and cost efficiency",
+      "weights": {
+        "business": 0.5,
+        "cost": 2.0,
+        "distance": 1.0,
+        "availability": 1.0,
+        "budget_efficiency": 2.0,
+        "couple": 1.0,
+        "amenity": 0.5,
+        "holistic": 1.0
+      }
+    },
+    "location_focused": {
+      "name": "Location Focused",
+      "description": "Prioritizes proximity to client",
+      "weights": {
+        "business": 1.0,
+        "cost": 1.0,
+        "distance": 3.0,
+        "availability": 1.0,
+        "budget_efficiency": 1.0,
+        "couple": 1.0,
+        "amenity": 1.0,
+        "holistic": 1.0
+      }
+    },
+    "availability_focused": {
+      "name": "Immediate Availability",
+      "description": "Prioritizes communities with immediate openings",
+      "weights": {
+        "business": 1.0,
+        "cost": 1.0,
+        "distance": 1.0,
+        "availability": 3.0,
+        "budget_efficiency": 1.0,
+        "couple": 1.0,
+        "amenity": 0.5,
+        "holistic": 1.0
+      }
+    },
+    "premium_experience": {
+      "name": "Premium Experience",
+      "description": "Prioritizes amenities and holistic fit",
+      "weights": {
+        "business": 1.5,
+        "cost": 0.5,
+        "distance": 1.0,
+        "availability": 1.0,
+        "budget_efficiency": 0.5,
+        "couple": 1.0,
+        "amenity": 2.0,
+        "holistic": 2.0
+      }
+    }
+  },
+  "system": {
+    "maintenance_mode": false,
+    "debug_mode": false,
+    "log_level": "INFO",
+    "max_recommendations": 10,
+    "enable_crm_integration": true,
+    "enable_email_notifications": true
+  },
+  "events": {
+    "event_20251203150758_bfaa71": {
+      "event_id": "event_20251203150758_bfaa71",
+      "name": "Senior",
+      "description": "Test 1",
+      "created_at": "2025-12-03T15:07:58.362429",
+      "expires_at": "2025-12-03T23:07:58.362430",
+      "created_by": "admin",
+      "max_concurrent_sessions": 50,
+      "current_sessions": 0,
+      "total_sessions_served": 0,
+      "is_active": true,
+      "session_ids": [],
+      "time_remaining": 28799,
+      "is_expired": false
+    }
+  },
+  "audit_log": [
+    {
+      "timestamp": "2025-12-03T01:17:07.759011",
+      "action": "update_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        },
+        "new": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 3.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T01:17:11.720045",
+      "action": "update_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 0.5,
+          "cost": 2.0,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 2.0,
+          "couple": 1.0,
+          "amenity": 0.5,
+          "holistic": 1.0
+        },
+        "new": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 3.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T01:17:20.186237",
+      "action": "reset_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 3.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        },
+        "new": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 3.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T02:05:30.099460",
+      "action": "update_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 3.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        },
+        "new": {
+          "business": 1.5,
+          "cost": 0.5,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 0.5,
+          "couple": 1.0,
+          "amenity": 2.0,
+          "holistic": 2.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T02:05:38.427978",
+      "action": "update_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        },
+        "new": {
+          "business": 1.5,
+          "cost": 0.5,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 0.5,
+          "couple": 1.0,
+          "amenity": 2.0,
+          "holistic": 2.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T02:05:44.457259",
+      "action": "reset_ranking_weights",
+      "user": "admin",
+      "details": {
+        "old": {
+          "business": 1.5,
+          "cost": 0.5,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 0.5,
+          "couple": 1.0,
+          "amenity": 2.0,
+          "holistic": 2.0
+        },
+        "new": {
+          "business": 1.0,
+          "cost": 1.0,
+          "distance": 1.0,
+          "availability": 1.0,
+          "budget_efficiency": 1.0,
+          "couple": 1.0,
+          "amenity": 1.0,
+          "holistic": 1.0
+        }
+      }
+    },
+    {
+      "timestamp": "2025-12-03T02:20:32.149038",
+      "action": "create_event",
+      "user": "admin",
+      "details": {
+        "event_id": "event_20251203022032_4a3fd8",
+        "name": "w",
+        "max_concurrent_sessions": 11,
+        "duration_minutes": 480
+      }
+    },
+    {
+      "timestamp": "2025-12-03T02:21:15.865545",
+      "action": "delete_event",
+      "user": "admin",
+      "details": {
+        "event_id": "event_20251203022032_4a3fd8"
+      }
+    },
+    {
+      "timestamp": "2025-12-03T15:07:58.364680",
+      "action": "create_event",
+      "user": "admin",
+      "details": {
+        "event_id": "event_20251203150758_bfaa71",
+        "name": "Senior",
+        "max_concurrent_sessions": 50,
+        "duration_minutes": 480
+      }
+    }
+  ]
+}

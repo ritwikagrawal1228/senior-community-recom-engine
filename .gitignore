@@ -63,7 +63,8 @@ output/*
 *.json
 !package.json
 !tsconfig.json
-service-account*.json
+!capstone-project-478823-fe31a45bfcf6.json
+!admin_config.json
 
 # Testing
 .pytest_cache/
