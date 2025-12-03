@@ -2094,11 +2094,65 @@ def handle_stop_voice(data):
     logger.info(f"Voice session {session_id} stopped")
 
 
+def load_persisted_voice_sessions():
+    """Load persisted voice sessions from database on startup"""
+    try:
+        from voice_agent import VoiceSession, active_sessions
+        from datetime import datetime
+        import json
+        
+        conn = run_logs_db.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='voice_sessions'")
+        if not cursor.fetchone():
+            conn.close()
+            return
+        
+        # Load active sessions (not expired)
+        cursor.execute('''
+            SELECT session_id, expires_at, status, language, created_by, session_data
+            FROM voice_sessions
+            WHERE expires_at > datetime('now') AND status != 'ended'
+        ''')
+        
+        rows = cursor.fetchall()
+        for row in rows:
+            session_id, expires_at_str, status, language, created_by, session_data_json = row
+            try:
+                expires_at = datetime.fromisoformat(expires_at_str) if expires_at_str else None
+                session_data = json.loads(session_data_json) if session_data_json else {}
+                
+                # Recreate VoiceSession
+                voice_session = VoiceSession(session_id=session_id)
+                voice_session.status = status
+                voice_session.client_info = session_data.get('client_info', {})
+                voice_session.client_info['language'] = language
+                voice_session.client_info['created_by'] = created_by
+                if expires_at:
+                    voice_session.expires_at = expires_at
+                
+                active_sessions[session_id] = voice_session
+                logger.info(f"Loaded persisted voice session: {session_id}")
+            except Exception as e:
+                logger.warning(f"Failed to load session {session_id}: {e}")
+        
+        conn.close()
+        logger.info(f"Loaded {len(rows)} persisted voice sessions")
+    except Exception as e:
+        logger.warning(f"Failed to load persisted sessions: {e}")
+
+
 if __name__ == '__main__':
     print("\n" + "="*80)
     print("SENIOR LIVING RECOMMENDATION SYSTEM - WEB INTERFACE")
     print("="*80)
     print("\nStarting AI Sales Assistant server with Voice Agent support...")
+    
+    # Load persisted voice sessions
+    load_persisted_voice_sessions()
+    
     print("Open your browser to: http://localhost:5050")
     print("\nVoice Agent requires GEMINI_API_KEY environment variable")
     print("\nPress Ctrl+C to stop the server")
