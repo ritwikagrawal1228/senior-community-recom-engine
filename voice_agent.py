@@ -273,9 +273,21 @@ class GeminiVoiceAgent:
         if not self.session or not recommendations:
             return
         
-        # Format recommendations for the agent to speak
-        results_text = "RESULTS: Here are the top matches:\n"
+        # Format recommendations for the agent to speak with ENTHUSIASM and VARIATION
+        results_text = """RESULTS: Great news! I found some wonderful options for you! 
+
+Present these recommendations with GENUINE ENTHUSIASM and VARIED SPEECH:
+- Sound EXCITED when introducing each option
+- Vary your SPEED - faster when excited, slower when giving details
+- Use EMPHASIS on important information
+- Sound WARM and HELPFUL
+- Be CONVERSATIONAL, not robotic
+
+Here are the top matches:
+
+"""
         
+        enthusiasm_phrases = ["Fantastic!", "Wonderful!", "Excellent!", "Great!", "Perfect!"]
         for i, rec in enumerate(recommendations[:5], 1):
             name = rec.get('community_name', f"Community #{rec.get('community_id', i)}")
             price = rec.get('monthly_fee', rec.get('base_price', 'Price varies'))
@@ -283,12 +295,14 @@ class GeminiVoiceAgent:
             city = rec.get('city', '')
             score = rec.get('final_score', rec.get('score', 0))
             
-            results_text += f"\n{i}. {name}"
+            # Add enthusiasm markers for voice variation
+            enthusiasm = enthusiasm_phrases[i % len(enthusiasm_phrases)]
+            results_text += f"{i}. {enthusiasm} {name}"
             if city:
                 results_text += f" in {city}"
-            results_text += f" - ${price}/month, {care} care, match score {int(score*100)}%"
+            results_text += f" - ${price}/month, {care} care, with a {int(score*100)}% match score!\n"
         
-        results_text += "\n\nPlease present these to the caller in a friendly, conversational way."
+        results_text += "\nPresent these with VARIED SPEED, ENTHUSIASM, and NATURAL CONVERSATIONAL TONE. Sound genuinely excited about helping them find their perfect match!"
         
         logger.info(f"Sending recommendations to agent: {results_text[:200]}...")
         
