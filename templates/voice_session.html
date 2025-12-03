@@ -860,21 +860,46 @@
         }
         
         function showRecommendations(recs) {
+            if (!recs || recs.length === 0) {
+                console.warn('No recommendations received');
+                return;
+            }
+            
+            console.log('Showing recommendations:', recs);
             const panel = document.getElementById('recommendations-panel');
             const list = document.getElementById('recommendations-list');
             
-            list.innerHTML = recs.map(rec => `
-                <div class="rec-card">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-                        <h4 style="font-weight:600;">${rec.community_name}</h4>
-                        <span class="rec-badge">${Math.round(rec.final_score * 100)}% Match</span>
+            if (!panel || !list) {
+                console.error('Recommendations panel elements not found');
+                return;
+            }
+            
+            list.innerHTML = recs.map((rec, idx) => {
+                const name = rec.community_name || rec.name || `Community #${rec.community_id || idx + 1}`;
+                const score = rec.final_score || rec.score || 0;
+                const city = rec.city || 'Location N/A';
+                const careLevel = rec.care_level || 'Assisted Living';
+                const price = rec.monthly_fee || rec.base_price || 'N/A';
+                
+                return `
+                    <div class="rec-card">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <h4 style="font-weight:600;">${name}</h4>
+                            <span class="rec-badge">${Math.round(score * 100)}% Match</span>
+                        </div>
+                        <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.5rem;">${city} • ${careLevel}</p>
+                        <div style="font-weight:600; color:var(--primary-color);">$${typeof price === 'number' ? price.toLocaleString() : price}/mo</div>
                     </div>
-                    <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.5rem;">${rec.city || 'Location N/A'} • ${rec.care_level}</p>
-                    <div style="font-weight:600; color:var(--primary-color);">$${rec.monthly_fee}/mo</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             panel.classList.add('active');
+            
+            // Also update status message
+            if (mainStatus) {
+                mainStatus.innerText = "Recommendations Ready!";
+                subStatus.innerText = `Found ${recs.length} matching communities`;
+            }
         }
     </script>
 </body>

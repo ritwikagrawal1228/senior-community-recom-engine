@@ -284,15 +284,15 @@ class GeminiVoiceAgent:
                 self.audio_in_queue = asyncio.Queue()
                 self.audio_out_queue = asyncio.Queue(maxsize=5)
                 
-                logger.info(f"✅ Gemini Voice Agent connected for session {self.session_id}")
+                logger.info(f"Gemini Voice Agent connected for session {self.session_id}")
                 
                 # Signal that we're ready
                 if self.on_status_callback:
                     await self.on_status_callback('connected', 'Voice agent ready')
                 
-                # Create concurrent tasks (like official Google example)
-                tg.create_task(self._send_realtime_task())  # Sends audio from queue to Gemini
-                tg.create_task(self._receive_task())         # Receives from Gemini
+                # Create concurrent tasks AFTER session is set (like official Google example)
+                send_task = tg.create_task(self._send_realtime_task())  # Sends audio from queue to Gemini
+                receive_task = tg.create_task(self._receive_task())      # Receives from Gemini
                 
                 # Start conversation - this will trigger the greeting
                 await session.send(input="Hello, I'm ready to start the consultation.", end_of_turn=True)
@@ -311,7 +311,7 @@ class GeminiVoiceAgent:
             import traceback
             traceback.print_exception(eg)
         except Exception as e:
-            logger.error(f"❌ Failed to connect to Gemini: {type(e).__name__}: {e}")
+            logger.error(f"Failed to connect to Gemini: {type(e).__name__}: {e}")
             import traceback
             logger.error(traceback.format_exc())
         finally:
@@ -322,6 +322,15 @@ class GeminiVoiceAgent:
     async def _send_realtime_task(self):
         """Continuously send queued audio/text to Gemini (runs as concurrent task)"""
         logger.info("Send realtime task started")
+        
+        # Wait for session to be ready
+        while not self.session and self.is_connected:
+            await asyncio.sleep(0.1)
+        
+        if not self.session:
+            logger.error("Session not available in send task")
+            return
+        
         while self.is_connected:
             try:
                 # Wait for item with timeout to allow checking is_connected
@@ -342,6 +351,14 @@ class GeminiVoiceAgent:
         """Receive responses from Gemini and forward to callbacks (runs as concurrent task)"""
         logger.info("Receive task started")
         accumulated_text = ""
+        
+        # Wait for session to be ready
+        while not self.session and self.is_connected:
+            await asyncio.sleep(0.1)
+        
+        if not self.session:
+            logger.error("Session not available in receive task")
+            return
         
         while self.is_connected:
             try:
@@ -364,7 +381,7 @@ class GeminiVoiceAgent:
                 if accumulated_text and not self.search_triggered:
                     search_params = self.parse_search_ready(accumulated_text)
                     if search_params:
-                        logger.info(f"🔍 SEARCH_READY detected: {search_params}")
+                        logger.info(f"SEARCH_READY detected: {search_params}")
                         self.search_triggered = True
                         self.collected_info = search_params
                         
