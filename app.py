@@ -1695,6 +1695,69 @@ def handle_start_voice(data):
                 
                 try:
                     from ranking_engine import RankingEngine
+                    import re
+                    
+                    # If params are empty (natural language trigger), extract from conversation history
+                    if not any(params.values()):
+                        logger.info("Extracting info from conversation history...")
+                        conversation_text = "\n".join([
+                            f"{msg.get('role', 'unknown').upper()}: {msg.get('text', '')}"
+                            for msg in voice_session.conversation_history
+                        ])
+                        
+                        # Extract care level
+                        care_patterns = [
+                            r'(?:care level|care type|level of care|assistance level)[:\s]+(independent|assisted|memory care|skilled nursing)',
+                            r'(independent|assisted|memory care|skilled nursing)[\s]+(?:care|living)',
+                        ]
+                        care_level = ''
+                        for pattern in care_patterns:
+                            match = re.search(pattern, conversation_text, re.IGNORECASE)
+                            if match:
+                                care_level = match.group(1).lower()
+                                break
+                        
+                        # Extract budget
+                        budget_patterns = [
+                            r'(?:budget|price|cost|afford)[:\s]+(?:around|about|up to|approximately)?\s*\$?(\d+(?:,\d{3})*(?:k|K)?)',
+                            r'\$(\d+(?:,\d{3})*(?:k|K)?)',
+                        ]
+                        budget = ''
+                        for pattern in budget_patterns:
+                            match = re.search(pattern, conversation_text, re.IGNORECASE)
+                            if match:
+                                budget = match.group(1)
+                                break
+                        
+                        # Extract location
+                        location_patterns = [
+                            r'(?:location|city|area|prefer|looking)[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)',
+                        ]
+                        location = ''
+                        for pattern in location_patterns:
+                            match = re.search(pattern, conversation_text, re.IGNORECASE)
+                            if match:
+                                location = match.group(1)
+                                break
+                        
+                        # Extract timeline
+                        timeline_patterns = [
+                            r'(?:timeline|when|need|move)[:\s]+(immediate|asap|soon|near.?term|flexible|within.*month)',
+                        ]
+                        timeline = ''
+                        for pattern in timeline_patterns:
+                            match = re.search(pattern, conversation_text, re.IGNORECASE)
+                            if match:
+                                timeline = match.group(1).lower()
+                                break
+                        
+                        params.update({
+                            'care_level': care_level,
+                            'budget': budget,
+                            'location': location,
+                            'timeline': timeline
+                        })
+                        logger.info(f"Extracted from conversation: {params}")
                     
                     # Create client requirements from voice params
                     client_requirements = {

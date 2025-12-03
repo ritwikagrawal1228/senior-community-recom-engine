@@ -123,8 +123,10 @@ PERSONALITY:
 YOUR CONVERSATION FLOW:
 1. GREETING: Introduce yourself warmly: "Hi! I'm Sage, your AI assistant for finding senior living communities."
 2. INFORMATION GATHERING: Ask one at a time about Care Level, Budget, Location, Timeline, and Special Needs.
-3. CONFIRM & SEARCH: When you have collected the info, say "Perfect! Let me search our database."
-4. SMALL TALK: Chat naturally while waiting.
+3. CONFIRM & SEARCH: When you have collected enough information (at least care level and budget), you MUST output exactly this format before saying anything else:
+   SEARCH_READY: care_level=[value] budget=[value] location=[value] timeline=[value] special_needs=[value]
+   Then say "Perfect! Let me search our database." and wait for results.
+4. SMALL TALK: Chat naturally while waiting for search results.
 
 IMPORTANT RULES:
 - Keep responses SHORT (2-3 sentences max for voice).
@@ -188,34 +190,55 @@ class GeminiVoiceAgent:
         """Parse the SEARCH_READY message from the agent"""
         import re
         
-        if 'SEARCH_READY:' not in text:
-            return None
+        # First, try to find explicit SEARCH_READY format
+        if 'SEARCH_READY:' in text:
+            try:
+                # Extract the parameters
+                match = re.search(r'SEARCH_READY:\s*(.+?)(?:\.|$|\n)', text, re.IGNORECASE | re.DOTALL)
+                if match:
+                    params_str = match.group(1)
+                    params = {}
+                    
+                    # Parse key=value pairs
+                    for pair in re.findall(r'(\w+)=\[([^\]]*)\]', params_str):
+                        key, value = pair
+                        params[key] = value.strip() if value.strip().lower() != 'none' else None
+                    
+                    # Map to our expected format
+                    return {
+                        'care_level': params.get('care_level', ''),
+                        'budget': params.get('budget', ''),
+                        'location': params.get('location', ''),
+                        'timeline': params.get('timeline', ''),
+                        'special_requirements': params.get('special_needs', '')
+                    }
+            except Exception as e:
+                logger.error(f"Error parsing SEARCH_READY: {e}")
         
-        try:
-            # Extract the parameters
-            match = re.search(r'SEARCH_READY:\s*(.+?)(?:\.|$)', text, re.IGNORECASE)
-            if not match:
-                return None
-            
-            params_str = match.group(1)
-            params = {}
-            
-            # Parse key=value pairs
-            for pair in re.findall(r'(\w+)=\[([^\]]*)\]', params_str):
-                key, value = pair
-                params[key] = value.strip() if value.strip().lower() != 'none' else None
-            
-            # Map to our expected format
-            return {
-                'care_level': params.get('care_level', ''),
-                'budget': params.get('budget', ''),
-                'location': params.get('location', ''),
-                'timeline': params.get('timeline', ''),
-                'special_requirements': params.get('special_needs', '')
-            }
-        except Exception as e:
-            logger.error(f"Error parsing SEARCH_READY: {e}")
-            return None
+        # Fallback: Detect natural language search triggers
+        search_triggers = [
+            r'let me search',
+            r'search.*database',
+            r'search.*communities',
+            r'find.*communities',
+            r'looking.*now',
+            r'searching.*now'
+        ]
+        
+        text_lower = text.lower()
+        for trigger in search_triggers:
+            if re.search(trigger, text_lower):
+                logger.info(f"Detected natural language search trigger: {trigger}")
+                # Return empty dict to trigger search - we'll extract from conversation history
+                return {
+                    'care_level': '',
+                    'budget': '',
+                    'location': '',
+                    'timeline': '',
+                    'special_requirements': ''
+                }
+        
+        return None
     
     async def send_recommendations(self, recommendations: list):
         """Send recommendations back to the agent to speak to the user"""
@@ -403,18 +426,21 @@ class GeminiVoiceAgent:
                         pass
                 
                 # Turn complete - check for SEARCH_READY trigger
+                # Check accumulated text from this turn AND keep checking across turns
                 if accumulated_text and not self.search_triggered:
                     search_params = self.parse_search_ready(accumulated_text)
-                    if search_params:
-                        logger.info(f"SEARCH_READY detected: {search_params}")
+                    if search_params is not None:  # None means not found, empty dict means trigger found
+                        logger.info(f"🔍 SEARCH_READY detected! Params: {search_params}")
                         self.search_triggered = True
                         self.collected_info = search_params
                         
                         if self.on_search_ready_callback:
                             await self.on_search_ready_callback(search_params)
                 
-                # Clear accumulated text for next turn
-                accumulated_text = ""
+                # Don't clear accumulated_text - keep it for next turn to catch delayed triggers
+                # Only clear if we've triggered search
+                if self.search_triggered:
+                    accumulated_text = ""
                     
             except asyncio.CancelledError:
                 break
