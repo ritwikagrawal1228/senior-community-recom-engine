@@ -355,7 +355,7 @@ class GeminiVoiceAgent:
     async def _receive_responses_task(self):
         """Receive responses from Gemini - matches reference pattern"""
         logger.info("Receive responses task started")
-        accumulated_text = ""
+        accumulated_text = ""  # Accumulate across ALL turns until search is triggered
         
         # Wait for session to be ready
         while not self.session and self.is_connected:
@@ -368,6 +368,7 @@ class GeminiVoiceAgent:
         while self.is_connected:
             try:
                 turn = self.session.receive()
+                turn_text = ""  # Text from this turn only
                 async for response in turn:
                     # Access nested structure directly (like TypeScript reference)
                     # message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data
@@ -409,7 +410,8 @@ class GeminiVoiceAgent:
                     
                     # Handle text
                     if text_data:
-                        accumulated_text += text_data
+                        accumulated_text += text_data  # Accumulate across all turns
+                        turn_text += text_data  # Also track this turn
                         logger.debug(f"Received text chunk: {text_data[:50]}...")
                         
                         if self.on_message_callback:
@@ -426,21 +428,25 @@ class GeminiVoiceAgent:
                         pass
                 
                 # Turn complete - check for SEARCH_READY trigger
-                # Check accumulated text from this turn AND keep checking across turns
+                # Check accumulated text (all turns) for search trigger
                 if accumulated_text and not self.search_triggered:
+                    # Check both the full accumulated text and just this turn's text
                     search_params = self.parse_search_ready(accumulated_text)
+                    if search_params is None and turn_text:
+                        # Also check just this turn's text
+                        search_params = self.parse_search_ready(turn_text)
+                    
                     if search_params is not None:  # None means not found, empty dict means trigger found
-                        logger.info(f"🔍 SEARCH_READY detected! Params: {search_params}")
+                        logger.info(f"🔍 SEARCH_READY detected! Full text: {accumulated_text[:200]}...")
+                        logger.info(f"🔍 Search params: {search_params}")
                         self.search_triggered = True
                         self.collected_info = search_params
                         
                         if self.on_search_ready_callback:
                             await self.on_search_ready_callback(search_params)
-                
-                # Don't clear accumulated_text - keep it for next turn to catch delayed triggers
-                # Only clear if we've triggered search
-                if self.search_triggered:
-                    accumulated_text = ""
+                        
+                        # Clear accumulated text after triggering search
+                        accumulated_text = ""
                     
             except asyncio.CancelledError:
                 break
