@@ -332,24 +332,38 @@ class GeminiVoiceAgent:
             try:
                 turn = self.session.receive()
                 async for response in turn:
-                    # Access parts directly to avoid SDK warnings
-                    # Handle audio data - send immediately to client (like reference's onmessage)
+                    # Access nested structure directly (like TypeScript reference)
+                    # message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data
                     audio_data = None
                     text_data = None
                     
-                    # Check for audio parts
-                    if hasattr(response, 'parts'):
-                        for part in response.parts:
-                            if hasattr(part, 'inline_data') and part.inline_data:
-                                audio_data = part.inline_data.data
-                            elif hasattr(part, 'text') and part.text:
-                                text_data = part.text
-                    else:
-                        # Fallback to properties if parts not available
-                        if hasattr(response, 'data') and response.data:
-                            audio_data = response.data
-                        if hasattr(response, 'text') and response.text:
-                            text_data = response.text
+                    # Try to access server_content.model_turn.parts structure
+                    try:
+                        if hasattr(response, 'server_content') and response.server_content:
+                            server_content = response.server_content
+                            if hasattr(server_content, 'model_turn') and server_content.model_turn:
+                                model_turn = server_content.model_turn
+                                if hasattr(model_turn, 'parts') and model_turn.parts:
+                                    for part in model_turn.parts:
+                                        # Check for inline_data (audio)
+                                        if hasattr(part, 'inline_data') and part.inline_data:
+                                            if hasattr(part.inline_data, 'data'):
+                                                audio_data = part.inline_data.data
+                                        # Check for text
+                                        elif hasattr(part, 'text') and part.text:
+                                            text_data = part.text
+                    except AttributeError:
+                        # Fallback: try direct parts access
+                        try:
+                            if hasattr(response, 'parts') and response.parts:
+                                for part in response.parts:
+                                    if hasattr(part, 'inline_data') and part.inline_data:
+                                        if hasattr(part.inline_data, 'data'):
+                                            audio_data = part.inline_data.data
+                                    elif hasattr(part, 'text') and part.text:
+                                        text_data = part.text
+                        except AttributeError:
+                            pass
                     
                     # Handle audio data
                     if audio_data:
@@ -364,12 +378,15 @@ class GeminiVoiceAgent:
                         if self.on_message_callback:
                             await self.on_message_callback('agent', text_data)
                     
-                    # Handle interruptions (like reference checks for interrupted flag)
-                    if hasattr(response, 'interrupted') and response.interrupted:
-                        logger.info("Response interrupted by user")
-                        # Notify frontend to stop audio playback
-                        if self.on_status_callback:
-                            await self.on_status_callback('interrupted', 'Interrupted')
+                    # Handle interruptions
+                    try:
+                        if hasattr(response, 'server_content') and response.server_content:
+                            if hasattr(response.server_content, 'interrupted') and response.server_content.interrupted:
+                                logger.info("Response interrupted by user")
+                                if self.on_status_callback:
+                                    await self.on_status_callback('interrupted', 'Interrupted')
+                    except AttributeError:
+                        pass
                 
                 # Turn complete - check for SEARCH_READY trigger
                 if accumulated_text and not self.search_triggered:
