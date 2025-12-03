@@ -64,6 +64,7 @@ output/*
 !package.json
 !tsconfig.json
 !capstone-project-478823-fe31a45bfcf6.json
+!gen-lang-client-0663556503-424f723ba7a1.json
 !admin_config.json
 
 # Testing
