@@ -248,15 +248,20 @@ class GeminiVoiceAgent:
             r'let me search',
             r'search.*database',
             r'search.*communities',
+            r'searching.*communities',
+            r'searching for',
             r'find.*communities',
             r'looking.*now',
-            r'searching.*now'
+            r'searching.*now',
+            r'i.*search',
+            r'i.*am.*searching',
+            r'searching.*right now'
         ]
         
         text_lower = text.lower()
         for trigger in search_triggers:
             if re.search(trigger, text_lower):
-                logger.info(f"Detected natural language search trigger: {trigger}")
+                logger.info(f"🔍 Detected natural language search trigger: '{trigger}' in text: '{text_lower[:100]}...'")
                 # Return empty dict to trigger search - we'll extract from conversation history
                 return {
                     'care_level': '',
@@ -455,6 +460,21 @@ Here are the top matches:
                         accumulated_text += text_data  # Accumulate across all turns
                         turn_text += text_data  # Also track this turn
                         logger.debug(f"Received text chunk: {text_data[:50]}...")
+                        
+                        # Check for search trigger IMMEDIATELY after each text chunk (not just at turn end)
+                        if accumulated_text and not self.search_triggered:
+                            search_params = self.parse_search_ready(accumulated_text)
+                            if search_params is not None:  # None means not found, empty dict means trigger found
+                                logger.info(f"🔍 SEARCH_READY detected IMMEDIATELY! Text: {accumulated_text[:200]}...")
+                                logger.info(f"🔍 Search params: {search_params}")
+                                self.search_triggered = True
+                                self.collected_info = search_params
+                                
+                                if self.on_search_ready_callback:
+                                    await self.on_search_ready_callback(search_params)
+                                
+                                # Clear accumulated text after triggering search
+                                accumulated_text = ""
                         
                         if self.on_message_callback:
                             await self.on_message_callback('agent', text_data)
