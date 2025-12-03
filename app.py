@@ -1845,6 +1845,8 @@ def handle_start_voice(data):
                     'message': 'Voice agent ready'
                 }, room=session_id)
                 voice_session.status = 'collecting'
+            elif status == 'interrupted':
+                socketio.emit('voice_interrupted', {}, room=session_id)
         
         agent.on_status_callback = on_status_with_ready
         
