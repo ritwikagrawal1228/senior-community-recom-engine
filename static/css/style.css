@@ -1783,14 +1783,19 @@ body::after {
 }
 
 .metrics-grid {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--spacing-md);
-    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .metrics-grid .metric-item {
     flex: 1;
-    min-width: 150px;
 }
 
 .metric-item {

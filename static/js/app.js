@@ -1205,7 +1205,7 @@ async function loadDatabaseStats() {
         // Animate number changes
         if (previousStats) {
             animateNumber(totalEl, stats.total_communities);
-            animateNumber(feeEl.parentElement, Math.round(stats.avg_monthly_fee), '$');
+            animateNumber(feeEl, Math.round(stats.avg_monthly_fee), '$');
             animateNumber(enhancedEl, stats.enhanced_available);
         } else {
             totalEl.textContent = stats.total_communities;
