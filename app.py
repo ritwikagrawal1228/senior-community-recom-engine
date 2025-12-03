@@ -1905,7 +1905,6 @@ def handle_start_voice(data):
                         future.result(timeout=30)
                     
                     # Also notify frontend (same format as audio/text results)
-                    # Also notify frontend (same format as audio/text results)
                     socketio.emit('voice_recommendations', {
                         'session_id': session_id,
                         'recommendations': recommendations,
