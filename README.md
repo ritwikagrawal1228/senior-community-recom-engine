@@ -55,11 +55,18 @@ cp .env.example .env
 Edit `.env` with your settings:
 
 ```env
-# Required
-GEMINI_API_KEY=your_gemini_api_key_here
+# Required: OpenRouter API (for audio/text workflow)
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+OPENROUTER_MODEL=google/gemini-2.5-flash
+APP_URL=https://your-app.com
+APP_NAME=Senior Living Recommendations
 
-# Optional - for voice agent
+# Required: Gemini API (for voice agent - still uses direct API)
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_LIVE_MODEL=gemini-2.5-flash-native-audio-preview-09-2025
+
+# Required: Flask
+SECRET_KEY=your_secret_key_here
 
 # Optional - for CRM integration
 GOOGLE_SPREADSHEET_ID=your_spreadsheet_id

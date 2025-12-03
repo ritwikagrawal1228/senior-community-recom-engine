@@ -15,8 +15,7 @@ from datetime import datetime
 # Third-party imports
 import pandas as pd
 import numpy as np
-from google import genai
-from google.genai import types
+import requests
 from geopy.distance import geodesic
 
 
@@ -466,49 +465,82 @@ class CoupleFriendlinessRanker(RankingDimension):
 
 
 class GeminiRanker(RankingDimension):
-    """Base class for AI-powered ranking using Gemini 2.5 Flash"""
+    """Base class for AI-powered ranking using Gemini 2.5 Flash via OpenRouter"""
 
     def __init__(self, name: str, weight: float = 1.0):
         super().__init__(name, weight)
 
-        # Initialize Gemini 2.5 Flash
-        api_key = os.getenv('GEMINI_API_KEY')
+        # Initialize OpenRouter API
+        api_key = os.getenv('OPENROUTER_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
+            raise ValueError("OPENROUTER_API_KEY environment variable not set")
 
-        self.client = genai.Client(api_key=api_key)
-        self.model_name = 'gemini-2.5-flash'
+        self.api_key = api_key
+        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.model_name = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
+        
+        # OpenRouter requires HTTP-Referer header
+        self.app_url = os.getenv('APP_URL', 'https://your-app.com')
+        self.app_name = os.getenv('APP_NAME', 'Senior Living Recommendations')
 
     def _call_gemini(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Dict[str, Any]:
-        """Call Gemini API with structured JSON output, timeout, and retry logic
-        
-        Note: The timeout parameter is accepted for API compatibility but the new 
-        google.genai SDK doesn't support timeout configuration in the same way.
-        Timeout behavior is now handled by the SDK's default settings and network layer.
-        """
+        """Call Gemini API via OpenRouter with structured JSON output, timeout, and retry logic"""
         import time
+
+        # Prepare messages for OpenRouter API
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }
+        ]
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": self.app_url,
+            "X-Title": self.app_name
+        }
+
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": 0.0,
+            "response_format": {"type": "json_object"}
+        }
 
         for attempt in range(max_retries):
             try:
-                # Note: google.genai (v1.51.0) doesn't support request_options timeout
-                # The SDK handles timeouts internally at the network layer
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        temperature=0.0,
-                        response_mime_type="application/json"
-                    )
+                response = requests.post(
+                    self.api_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout
                 )
-                return json.loads(response.text)
-            except Exception as e:
+                response.raise_for_status()
+                
+                result = response.json()
+                result_text = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+                
+                if not result_text:
+                    raise ValueError("OpenRouter API returned empty response")
+                
+                return json.loads(result_text)
+            except requests.exceptions.HTTPError as e:
+                status_code = e.response.status_code if e.response else None
                 error_msg = str(e).lower()
 
                 # Check if it's a retryable error (503, 504, 429, timeout, overload, unavailable)
                 is_retryable = (
-                    '503' in error_msg or
-                    '504' in error_msg or
-                    '429' in error_msg or
+                    status_code == 503 or
+                    status_code == 429 or
+                    status_code == 502 or
+                    status_code == 504 or
                     'timeout' in error_msg or
                     'unavailable' in error_msg or
                     'overloaded' in error_msg or
@@ -520,6 +552,34 @@ class GeminiRanker(RankingDimension):
                 if is_retryable and attempt < max_retries - 1:
                     wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
                     wait_time = min(wait_time, 30.0)  # Cap at 30 seconds
+                    print(f"  [RETRY] {self.name} API error (attempt {attempt + 1}/{max_retries}): HTTP {status_code} - {str(e)[:80]}... Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    if is_retryable:
+                        print(f"  [WARNING] {self.name} API error after {max_retries} retries: {e}")
+                    else:
+                        print(f"  [WARNING] {self.name} API error (non-retryable): {e}")
+                    return {"rankings": []}
+            except Exception as e:
+                error_msg = str(e).lower()
+                
+                # Check if it's a retryable error
+                is_retryable = (
+                    '503' in error_msg or
+                    '504' in error_msg or
+                    '429' in error_msg or
+                    'timeout' in error_msg or
+                    'unavailable' in error_msg or
+                    'overloaded' in error_msg or
+                    'rate limit' in error_msg or
+                    'quota' in error_msg or
+                    'connection' in error_msg
+                )
+
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2
+                    wait_time = min(wait_time, 30.0)
                     print(f"  [RETRY] {self.name} API error (attempt {attempt + 1}/{max_retries}): {str(e)[:80]}... Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                     continue

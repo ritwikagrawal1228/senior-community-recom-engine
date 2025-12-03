@@ -2,7 +2,8 @@
 # Version 2.0 - Enhanced with Real Geocoding
 
 # AI Processing
-google-genai>=1.0.0  # Gemini 2.5 Flash for audio extraction (new unified SDK)
+google-genai>=1.0.0  # Gemini Live API for voice agent (direct SDK)
+requests>=2.31.0      # HTTP client for OpenRouter API (audio/text workflow)
 
 # Data Processing
 pandas>=2.0.0               # Community data filtering

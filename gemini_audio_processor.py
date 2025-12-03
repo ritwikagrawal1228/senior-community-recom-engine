@@ -1,15 +1,15 @@
 """
-Gemini 2.5 Flash Audio Processor
-Handles direct audio file processing with Gemini's native audio support
+Gemini 2.5 Flash Audio Processor via OpenRouter
+Handles audio file processing using Gemini 2.5 Flash through OpenRouter API
 """
 import os
 import json
 import time
+import base64
 import logging
+import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
-from google import genai
-from google.genai import types
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -20,29 +20,33 @@ logger = logging.getLogger(__name__)
 
 class GeminiAudioProcessor:
     """
-    Audio processor using Gemini 2.5 Flash
-    - Supports direct audio file input (no transcription step needed)
+    Audio processor using Gemini 2.5 Flash via OpenRouter
+    - Supports direct audio file input via base64 encoding
     - Extracts structured client requirements
     - Lightweight and fast
     """
 
     def __init__(self):
-        """Initialize Gemini API"""
-        api_key = os.getenv('GEMINI_API_KEY')
+        """Initialize OpenRouter API"""
+        api_key = os.getenv('OPENROUTER_API_KEY')
         if not api_key:
             raise ValueError(
-                "GEMINI_API_KEY not found in environment variables. "
+                "OPENROUTER_API_KEY not found in environment variables. "
                 "Please add it to your .env file"
             )
 
-        # Initialize new Gemini client
-        self.client = genai.Client(api_key=api_key)
-        self.model_name = os.getenv('GEMINI_MODEL')
+        self.api_key = api_key
+        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.model_name = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
+        
+        # OpenRouter requires HTTP-Referer header
+        self.app_url = os.getenv('APP_URL', 'https://your-app.com')
+        self.app_name = os.getenv('APP_NAME', 'Senior Living Recommendations')
 
     def process_audio_file(self, audio_path: str, language: str = 'english') -> Dict[str, Any]:
         """
         Process audio file and extract client requirements
-        Gemini 2.5 Flash can handle audio directly
+        Uses OpenRouter API with base64-encoded audio
 
         Args:
             audio_path: Path to audio file (mp3, wav, m4a, etc.)
@@ -69,83 +73,55 @@ class GeminiAudioProcessor:
                     f"Supported formats: {', '.join(supported_extensions)}"
                 )
             
-            # Map file extensions to MIME types
-            mime_type_map = {
-                '.mp3': 'audio/mpeg',
-                '.wav': 'audio/wav',
-                '.m4a': 'audio/mp4',
-                '.ogg': 'audio/ogg',
-                '.webm': 'audio/webm',
-                '.flac': 'audio/flac'
+            # Map file extensions to OpenRouter audio formats
+            format_map = {
+                '.mp3': 'mp3',
+                '.wav': 'wav',
+                '.m4a': 'm4a',
+                '.ogg': 'ogg',
+                '.webm': 'webm',
+                '.flac': 'flac'
             }
-            mime_type = mime_type_map.get(file_ext, 'audio/mpeg')
+            audio_format = format_map.get(file_ext, 'mp3')
             
-            # Upload audio file to Gemini using new client API with config (with retry logic)
-            try:
-                audio_file = self._retry_api_call(
-                    lambda: self.client.files.upload(
-                        file=audio_path,
-                        config=types.UploadFileConfig(mime_type=mime_type)
-                    ),
-                    operation_name="file upload"
-                )
-            except Exception as upload_error:
-                error_msg = str(upload_error)
-                if 'invalid' in error_msg.lower() or 'format' in error_msg.lower() or 'unsupported' in error_msg.lower():
-                    raise ValueError(
-                        f"Unsupported audio format. Gemini API rejected the file format '{file_ext}'. "
-                        f"Please convert your audio file to MP3, WAV, M4A, OGG, WebM, or FLAC format. "
-                        f"Original error: {error_msg}"
-                    )
-                raise
-
-            # Wait for file to become ACTIVE (with retry logic for status checks)
-            import time
-            max_wait = 30  # seconds
-            waited = 0
-            file_state = getattr(audio_file.state, 'name', None) if hasattr(audio_file, 'state') else None
-            while file_state != 'ACTIVE' and waited < max_wait:
-                time.sleep(1)
-                waited += 1
-                try:
-                    audio_file = self._retry_api_call(
-                        lambda: self.client.files.get(name=audio_file.name),
-                        operation_name="file status check",
-                        max_retries=3,  # Fewer retries for status checks
-                        initial_delay=0.5  # Shorter delay for status checks
-                    )
-                except Exception as status_error:
-                    # If status check fails, log but continue waiting
-                    logger.warning(f"File status check failed (attempt {waited}/{max_wait}): {status_error}")
-                    if waited >= max_wait:
-                        raise RuntimeError(f"File status check failed after {max_wait} attempts: {status_error}")
-                    continue
-                file_state = getattr(audio_file.state, 'name', None) if hasattr(audio_file, 'state') else None
+            # Read and encode audio file to base64
+            logger.info(f"Reading and encoding audio file: {audio_path}")
+            with open(audio_path, 'rb') as audio_file:
+                audio_data = audio_file.read()
+                audio_base64 = base64.b64encode(audio_data).decode('utf-8')
             
-            file_state = getattr(audio_file.state, 'name', None) if hasattr(audio_file, 'state') else None
-            if file_state != 'ACTIVE':
-                state_str = str(file_state) if file_state is not None else 'unknown'
-                raise RuntimeError(f"File did not become ACTIVE after {max_wait}s (state: {state_str})")
-
             # Generate content with audio + extraction prompt
             extraction_prompt = self._create_extraction_prompt(language)
-
+            
+            # Prepare messages for OpenRouter API
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": extraction_prompt
+                        },
+                        {
+                            "type": "input_audio",
+                            "input_audio": {
+                                "data": audio_base64,
+                                "format": audio_format
+                            }
+                        }
+                    ]
+                }
+            ]
+            
             # Retry logic with exponential backoff for API overload errors
             response = self._retry_api_call(
-                lambda: self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=[extraction_prompt, audio_file],
-                    config=types.GenerateContentConfig(
-                        temperature=0.0,  # Zero temperature for maximum consistency
-                        response_mime_type="application/json"
-                    )
-                ),
+                lambda: self._make_openrouter_request(messages, temperature=0.0),
                 operation_name="audio processing"
             )
-
-            result_text = response.text if hasattr(response, 'text') and response.text else None
+            
+            result_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
             if not result_text:
-                raise ValueError("Gemini API returned empty response")
+                raise ValueError("OpenRouter API returned empty response")
             
             # Clean up markdown code blocks if present
             if result_text.strip().startswith('```'):
@@ -186,22 +162,28 @@ class GeminiAudioProcessor:
             extraction_prompt = self._create_extraction_prompt(language)
             full_prompt = extraction_prompt + "\n\nCLIENT CONVERSATION:\n" + text
 
+            # Prepare messages for OpenRouter API
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": full_prompt
+                        }
+                    ]
+                }
+            ]
+
             # Retry logic with exponential backoff for API overload errors
             response = self._retry_api_call(
-                lambda: self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=full_prompt,
-                    config=types.GenerateContentConfig(
-                        temperature=0.1,
-                        response_mime_type="application/json"
-                    )
-                ),
+                lambda: self._make_openrouter_request(messages, temperature=0.1),
                 operation_name="text processing"
             )
 
-            result_text = response.text if hasattr(response, 'text') and response.text else None
+            result_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
             if not result_text:
-                raise ValueError("Gemini API returned empty response")
+                raise ValueError("OpenRouter API returned empty response")
             
             parsed = json.loads(result_text)
 
@@ -215,6 +197,36 @@ class GeminiAudioProcessor:
 
         except Exception as e:
             raise RuntimeError(f"Failed to process text: {str(e)}") from e
+
+    def _make_openrouter_request(self, messages: list, temperature: float = 0.0) -> Dict[str, Any]:
+        """
+        Make a request to OpenRouter API
+        
+        Args:
+            messages: List of message objects
+            temperature: Sampling temperature
+            
+        Returns:
+            API response as dictionary
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": self.app_url,  # Required by OpenRouter
+            "X-Title": self.app_name  # Optional but recommended
+        }
+        
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "temperature": temperature,
+            "response_format": {"type": "json_object"}  # Force JSON output
+        }
+        
+        response = requests.post(self.api_url, headers=headers, json=payload, timeout=120)
+        response.raise_for_status()  # Raise exception for HTTP errors
+        
+        return response.json()
 
     def _retry_api_call(self, api_call_func, operation_name: str = "API call", max_retries: int = 5, initial_delay: float = 1.0):
         """
@@ -237,14 +249,17 @@ class GeminiAudioProcessor:
         for attempt in range(max_retries):
             try:
                 return api_call_func()
-            except Exception as e:
+            except requests.exceptions.HTTPError as e:
                 last_exception = e
+                status_code = e.response.status_code if e.response else None
                 error_str = str(e).lower()
                 
                 # Check if it's a retryable error (503, 429, overload, unavailable)
                 is_retryable = (
-                    '503' in error_str or
-                    '429' in error_str or
+                    status_code == 503 or
+                    status_code == 429 or
+                    status_code == 502 or  # Bad Gateway
+                    status_code == 504 or  # Gateway Timeout
                     'unavailable' in error_str or
                     'overloaded' in error_str or
                     'rate limit' in error_str or
@@ -263,6 +278,40 @@ class GeminiAudioProcessor:
                 # Calculate exponential backoff delay
                 delay = initial_delay * (2 ** attempt)
                 # Cap delay at 30 seconds
+                delay = min(delay, 30.0)
+                
+                logger.warning(
+                    f"⚠️ {operation_name} failed (attempt {attempt + 1}/{max_retries}): HTTP {status_code} - {str(e)[:100]}... "
+                    f"Retrying in {delay:.1f}s..."
+                )
+                
+                time.sleep(delay)
+            except Exception as e:
+                last_exception = e
+                error_str = str(e).lower()
+                
+                # Check if it's a retryable error
+                is_retryable = (
+                    '503' in error_str or
+                    '429' in error_str or
+                    'unavailable' in error_str or
+                    'overloaded' in error_str or
+                    'rate limit' in error_str or
+                    'quota' in error_str or
+                    'timeout' in error_str or
+                    'connection' in error_str
+                )
+                
+                if not is_retryable:
+                    # Not a retryable error, raise immediately
+                    raise
+                
+                # If this is the last attempt, don't wait
+                if attempt == max_retries - 1:
+                    break
+                
+                # Calculate exponential backoff delay
+                delay = initial_delay * (2 ** attempt)
                 delay = min(delay, 30.0)
                 
                 logger.warning(
@@ -349,7 +398,7 @@ Extract all available information from the conversation.
 def test_gemini_processor():
     """Test the Gemini audio processor with sample text"""
     print("="*80)
-    print("TESTING GEMINI 2.5 FLASH AUDIO PROCESSOR")
+    print("TESTING GEMINI 2.5 FLASH AUDIO PROCESSOR (via OpenRouter)")
     print("="*80)
 
     processor = GeminiAudioProcessor()
