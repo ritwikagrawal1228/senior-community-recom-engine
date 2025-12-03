@@ -10,6 +10,7 @@ import asyncio
 import base64
 import logging
 import uuid
+import warnings
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass, field
@@ -19,6 +20,13 @@ from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Suppress SDK warnings about non-text/non-data parts
+# These warnings occur when the SDK accesses .text/.data on multi-part responses
+# We access parts directly, so these warnings are not relevant
+warnings.filterwarnings('ignore', message='.*non-text parts.*')
+warnings.filterwarnings('ignore', message='.*non-data parts.*')
+warnings.filterwarnings('ignore', category=UserWarning, module='google_genai')
 
 logger = logging.getLogger(__name__)
 
