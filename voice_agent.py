@@ -328,7 +328,8 @@ class GeminiVoiceAgent:
                 try:
                     msg = await asyncio.wait_for(self.audio_out_queue.get(), timeout=0.1)
                     if self.session:
-                        await self.session.send(input=msg)
+                        # Send audio as realtime input (continuous, no end_of_turn)
+                        await self.session.send(input=msg, end_of_turn=False)
                 except asyncio.TimeoutError:
                     continue
             except Exception as e:

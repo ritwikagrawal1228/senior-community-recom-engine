@@ -1,15 +1,25 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Consultation - Senior Living Assistant</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20">
+    <title>Sage - Senior Living Consultant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
     <style>
+        :root {
+            --primary-color: #0d9488; /* teal-600 */
+            --primary-hover: #0f766e; /* teal-700 */
+            --bg-color: #f8fafc; /* slate-50 */
+            --text-main: #0f172a; /* slate-900 */
+            --text-muted: #64748b; /* slate-500 */
+            --error-bg: #fef2f2; /* red-50 */
+            --error-text: #dc2626; /* red-600 */
+            --success-color: #22c55e; /* green-500 */
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -17,993 +27,855 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            position: relative;
             overflow: hidden;
-            color: #fff;
         }
 
-        /* Animated Background */
-        .bg-gradient {
-            position: fixed;
-            inset: 0;
-            background: 
-                radial-gradient(circle at 20% 20%, rgba(0, 122, 255, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(88, 86, 214, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(52, 199, 89, 0.1) 0%, transparent 60%);
-            animation: bgPulse 8s ease-in-out infinite;
-            z-index: 0;
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
         }
 
-        @keyframes bgPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .voice-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 420px;
-            background: rgba(30, 30, 40, 0.8);
-            backdrop-filter: blur(40px) saturate(180%);
-            -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border-radius: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-            padding: 40px 30px;
-            text-align: center;
-        }
-
-        .voice-header {
-            margin-bottom: 30px;
-        }
-
-        .voice-logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #34C759 100%);
-            border-radius: 24px;
+        .logo-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background-color: var(--primary-color);
+            border-radius: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 20px;
-            box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
-            animation: logoGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes logoGlow {
-            0%, 100% { box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4); }
-            50% { box-shadow: 0 8px 48px rgba(0, 122, 255, 0.6); }
-        }
-
-        .voice-logo svg {
-            width: 40px;
-            height: 40px;
             color: white;
         }
 
-        .voice-header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 8px;
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.2;
         }
 
-        .voice-header p {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.95rem;
+        .brand-text p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
-        /* Call Status */
-        .call-status {
+        .status-badge {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            margin-bottom: 30px;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid #e2e8f0;
         }
 
-        .status-indicator {
-            width: 12px;
-            height: 12px;
+        .status-dot {
+            width: 0.625rem;
+            height: 0.625rem;
+            background-color: #cbd5e1;
             border-radius: 50%;
-            background: #8E8E93;
             transition: all 0.3s ease;
         }
 
-        .status-indicator.connecting {
-            background: #FF9500;
-            animation: pulse 1.5s infinite;
-        }
-
-        .status-indicator.ready {
-            background: #34C759;
-        }
-
-        .status-indicator.in-call {
-            background: #34C759;
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
             animation: pulse 2s infinite;
         }
 
-        .status-indicator.speaking {
-            background: #007AFF;
-            animation: pulse 0.8s infinite;
-        }
-
-        .status-indicator.ended {
-            background: #FF3B30;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-        }
-
-        .status-label {
+        .status-text {
+            font-size: 0.875rem;
             font-weight: 500;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.95rem;
-        }
-
-        .call-timer {
-            font-family: 'SF Mono', monospace;
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-left: 8px;
-        }
-
-        /* Audio Visualizer - Enhanced */
-        .audio-visualizer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            height: 80px;
-            margin-bottom: 30px;
-        }
-
-        .audio-visualizer .bar {
-            width: 6px;
-            height: 20px;
-            background: linear-gradient(180deg, #007AFF, #5856D6);
-            border-radius: 3px;
-            transition: height 0.1s ease;
-        }
-
-        .audio-visualizer.active .bar {
-            animation: audioBar 0.5s ease-in-out infinite;
-        }
-
-        .audio-visualizer .bar:nth-child(1) { animation-delay: 0s; }
-        .audio-visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
-        .audio-visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
-        .audio-visualizer .bar:nth-child(4) { animation-delay: 0.15s; }
-        .audio-visualizer .bar:nth-child(5) { animation-delay: 0.25s; }
-        .audio-visualizer .bar:nth-child(6) { animation-delay: 0.1s; }
-        .audio-visualizer .bar:nth-child(7) { animation-delay: 0.2s; }
-
-        @keyframes audioBar {
-            0%, 100% { height: 20px; }
-            50% { height: 60px; }
-        }
-
-        /* Call Buttons */
-        .call-buttons {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-
-        .call-btn {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-        }
-
-        .call-btn svg {
-            width: 32px;
-            height: 32px;
-        }
-
-        .call-btn.join {
-            background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
-            box-shadow: 0 8px 32px rgba(52, 199, 89, 0.4);
-        }
-
-        .call-btn.join:hover:not(:disabled) {
-            transform: scale(1.1);
-            box-shadow: 0 12px 40px rgba(52, 199, 89, 0.5);
-        }
-
-        .call-btn.end {
-            background: linear-gradient(135deg, #FF3B30 0%, #FF453A 100%);
-            box-shadow: 0 8px 32px rgba(255, 59, 48, 0.4);
-        }
-
-        .call-btn.end:hover:not(:disabled) {
-            transform: scale(1.1);
-            box-shadow: 0 12px 40px rgba(255, 59, 48, 0.5);
-        }
-
-        .call-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .call-btn:active:not(:disabled) {
-            transform: scale(0.95);
-        }
-
-        /* Ringing Animation */
-        .call-btn.join.ringing::before {
-            content: '';
-            position: absolute;
-            inset: -8px;
-            border-radius: 50%;
-            border: 3px solid rgba(52, 199, 89, 0.5);
-            animation: ringPulse 1.5s ease-out infinite;
-        }
-
-        @keyframes ringPulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.4); opacity: 0; }
-        }
-
-        .btn-label {
-            font-size: 0.85rem;
-            color: rgba(255, 255, 255, 0.6);
-            margin-top: 12px;
-        }
-
-        /* Conversation Display */
-        .conversation-display {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            max-height: 200px;
-            overflow-y: auto;
-            text-align: left;
-            min-height: 100px;
-        }
-
-        .conversation-message {
-            margin-bottom: 16px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .conversation-message.agent {
-            padding-left: 0;
-        }
-
-        .conversation-message.user {
-            padding-left: 16px;
-            border-left: 3px solid #007AFF;
-        }
-
-        .message-role {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 4px;
         }
 
-        .message-text {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.9);
-            line-height: 1.5;
-        }
-
-        .welcome-message {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-            padding: 20px;
-        }
-
-        /* Text Input Fallback */
-        .text-input-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        .text-input {
+        /* Main Content */
+        main {
             flex: 1;
-            padding: 14px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* Background Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(64px);
+            opacity: 0.6;
+            animation: blob-bounce 10s infinite ease-in-out;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            top: 20%;
+            left: 20%;
+            width: 24rem;
+            height: 24rem;
+            background-color: #ccfbf1; /* teal-100 */
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: 20%;
+            right: 20%;
+            width: 24rem;
+            height: 24rem;
+            background-color: #d1fae5; /* emerald-100 */
+            animation-delay: 2s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20rem;
+            height: 20rem;
+            background-color: #e0e7ff; /* sky-100 */
+            animation-delay: 4s;
+        }
+
+        @keyframes blob-bounce {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* Interface Card */
+        .interface-card {
+            position: relative;
+            width: 100%;
+            max-width: 32rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            z-index: 1;
+        }
+
+        .status-message {
+            text-align: center;
+        }
+
+        .status-message h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .status-message p {
+            color: var(--text-muted);
             font-size: 0.95rem;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            transition: all 0.2s ease;
         }
 
-        .text-input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+        /* Visualizer - Enhanced Globe Animation */
+        .visualizer-container {
+            width: 16rem;
+            height: 16rem;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .text-input:focus {
-            outline: none;
-            border-color: #007AFF;
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        #visualizer-canvas {
+            width: 100%;
+            height: 100%;
+            max-width: 400px;
+            max-height: 400px;
         }
 
-        .text-input:disabled {
-            opacity: 0.5;
+        .fallback-icon {
+            position: absolute;
+            width: 8rem;
+            height: 8rem;
+            background: #f0fdfa;
+            border: 4px solid #ccfbf1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5eead4;
         }
 
-        .send-btn {
-            padding: 14px 24px;
-            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
-            color: white;
+        .fallback-icon svg {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        /* Controls */
+        .controls {
+            width: 100%;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 0.75rem;
             border: none;
-            border-radius: 16px;
-            font-weight: 600;
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
             transition: all 0.2s ease;
         }
 
-        .send-btn:hover:not(:disabled) {
-            transform: scale(1.02);
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2);
         }
 
-        .send-btn:disabled {
-            opacity: 0.5;
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(13, 148, 136, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background-color: #94a3b8;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        /* Footer */
-        .voice-footer {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.4);
+        .btn-danger {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid #fecaca;
         }
 
-        /* Error State */
-        .error-message {
-            background: rgba(255, 59, 48, 0.2);
-            color: #FF6B6B;
-            padding: 12px 16px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            border: 1px solid rgba(255, 59, 48, 0.3);
+        .btn-danger:hover {
+            background-color: #fee2e2;
         }
 
-        /* Recommendations Panel */
-        .recommendations-panel {
-            background: rgba(52, 199, 89, 0.1);
-            border: 1px solid rgba(52, 199, 89, 0.3);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 20px;
-            animation: slideIn 0.3s ease;
+        .footer-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Recommendations Panel (Slide up) */
+        .recommendations-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+            box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 20;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
-        .recommendations-panel h3 {
-            font-size: 1rem;
-            color: #34C759;
-            margin-bottom: 12px;
-        }
-
-        .recommendation-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-
-        .recommendation-card:last-child {
-            margin-bottom: 0;
+        .recommendations-overlay.active {
+            transform: translateY(0);
         }
 
         .rec-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 1.5rem;
         }
 
-        .rec-rank {
-            background: linear-gradient(135deg, #007AFF, #5856D6);
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
+        .rec-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         }
 
-        .rec-name {
-            flex: 1;
-            margin-left: 10px;
-            font-weight: 600;
-            color: #fff;
+        .rec-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .rec-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .rec-price {
-            color: #34C759;
-            font-weight: 600;
-        }
-
-        .rec-details {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .rec-score {
-            display: inline-block;
-            background: rgba(0, 122, 255, 0.2);
-            color: #007AFF;
-            padding: 2px 8px;
-            border-radius: 10px;
+        .rec-badge {
+            background: #f0f9ff;
+            color: #0369a1;
             font-size: 0.7rem;
-            margin-top: 6px;
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
         }
 
-        /* Searching Status */
-        .status-indicator.searching {
-            background: #FF9500;
-            animation: pulse 1s infinite;
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
-
-        /* Responsive */
-        @media (max-width: 480px) {
-            .voice-container {
-                padding: 30px 20px;
-                border-radius: 24px;
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Dark mode support overrides if system preference is dark */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
             }
-
-            .call-btn {
-                width: 70px;
-                height: 70px;
+            
+            .interface-card {
+                background: rgba(30, 41, 59, 0.7);
+                border-color: rgba(255, 255, 255, 0.1);
             }
-
-            .call-btn svg {
-                width: 28px;
-                height: 28px;
+            
+            header {
+                background: rgba(15, 23, 42, 0.8);
+                border-bottom-color: #334155;
+            }
+            
+            .status-badge {
+                background: #1e293b;
+                border-color: #334155;
+            }
+            
+            .blob {
+                opacity: 0.3;
+            }
+            
+            .blob-1 { background-color: #115e59; }
+            .blob-2 { background-color: #065f46; }
+            .blob-3 { background-color: #1e40af; }
+            
+            .recommendations-overlay {
+                background: rgba(15, 23, 42, 0.95);
+                color: white;
+            }
+            
+            .rec-card {
+                background: #1e293b;
+                border-color: #334155;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Background -->
-    <div class="bg-gradient"></div>
+    <!-- Background Blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
 
-    <div class="voice-container">
-        <div class="voice-header">
-            <div class="voice-logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+    <header>
+        <div class="brand">
+            <div class="logo-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
                 </svg>
             </div>
-            <h1>AI Voice Consultation</h1>
-            <p>Talk naturally with Sage, your AI assistant</p>
+            <div class="brand-text">
+                <h1>Sage</h1>
+                <p>Senior Living Consultant</p>
+            </div>
         </div>
-
-        <div class="call-status">
-            <div class="status-indicator" id="status-indicator"></div>
-            <span class="status-label" id="status-label">Ready to connect</span>
-            <span class="call-timer" id="call-timer" style="display: none;">00:00</span>
+        <div class="status-badge">
+            <div class="status-dot" id="status-dot"></div>
+            <span class="status-text" id="status-text">Offline</span>
         </div>
+    </header>
 
-        <div id="error-container"></div>
+    <main>
+        <div class="interface-card">
+            <div class="status-message">
+                <h2 id="main-status">How can I help you today?</h2>
+                <p id="sub-status">Connect to start a voice consultation.</p>
+            </div>
 
-        <div class="audio-visualizer" id="audio-visualizer">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
-
-        <div class="call-buttons">
-            <div style="text-align: center;">
-                <button class="call-btn join" id="join-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            <div class="visualizer-container">
+                <canvas id="visualizer-canvas" width="400" height="400"></canvas>
+                
+                <div class="fallback-icon" id="fallback-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                     </svg>
-                </button>
-                <p class="btn-label">Join Call</p>
+                </div>
             </div>
-            <div style="text-align: center;">
-                <button class="call-btn end" id="end-btn" disabled>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
-                        <line x1="1" y1="1" x2="23" y2="23"></line>
+
+            <div class="controls">
+                <button id="btn-connect" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
                     </svg>
+                    Start Consultation
                 </button>
-                <p class="btn-label">End Call</p>
+                <button id="btn-disconnect" class="btn btn-danger" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+                        <line x1="23" y1="1" x2="1" y2="23"/>
+                    </svg>
+                    End Session
+                </button>
+            </div>
+
+            <div class="footer-info">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>Secure & Private • Powered by Gemini Live</span>
             </div>
         </div>
+    </main>
 
-        <div class="conversation-display" id="conversation-display">
-            <div class="welcome-message">
-                <p>👋 Press "Join Call" to start your consultation</p>
-                <p style="margin-top: 8px; font-size: 0.8rem;">Sage will help you find the perfect senior living community</p>
-            </div>
+    <!-- Recommendations Overlay -->
+    <div class="recommendations-overlay" id="recommendations-panel">
+        <div class="rec-header">
+            <h3 style="font-size: 1.25rem; font-weight: 600;">Top Recommendations</h3>
+            <button class="btn btn-danger" style="width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="document.getElementById('recommendations-panel').classList.remove('active')">
+                Close
+            </button>
         </div>
-
-        <div class="text-input-container">
-            <input type="text" class="text-input" id="text-input" placeholder="Or type a message..." disabled>
-            <button class="send-btn" id="send-btn" disabled>Send</button>
-        </div>
-
-        <!-- Recommendations Panel (Hidden initially) -->
-        <div class="recommendations-panel" id="recommendations-panel" style="display: none;">
-            <h3>🏠 Recommended Communities</h3>
-            <div id="recommendations-list"></div>
-        </div>
-
-        <div class="voice-footer">
-            Powered by Gemini AI • Session: {{ session_id[-8:] }}
+        <div class="rec-grid" id="recommendations-list">
+            <!-- Cards injected here -->
         </div>
     </div>
 
     <script>
+        // ==========================================
+        // CONFIG & STATE
+        // ==========================================
         const SESSION_ID = '{{ session_id }}';
-        const OUTPUT_SAMPLE_RATE = {{ sample_rate }};
-        const INPUT_SAMPLE_RATE = 16000;
+        const OUTPUT_SAMPLE_RATE = 24000;
         
-        // State
         let socket = null;
-        let isInCall = false;
+        let isConnected = false;
+        
+        // Audio Contexts
         let audioContext = null;
-        let mediaStream = null;
-        let audioProcessor = null;
-        let callStartTime = null;
-        let callTimerInterval = null;
         let audioQueue = [];
-        let isPlayingAudio = false;
+        let isPlaying = false;
+        let nextStartTime = 0;
         
-        // Elements
-        const joinBtn = document.getElementById('join-btn');
-        const endBtn = document.getElementById('end-btn');
-        const statusIndicator = document.getElementById('status-indicator');
-        const statusLabel = document.getElementById('status-label');
-        const callTimer = document.getElementById('call-timer');
-        const audioVisualizer = document.getElementById('audio-visualizer');
-        const conversationDisplay = document.getElementById('conversation-display');
-        const textInput = document.getElementById('text-input');
-        const sendBtn = document.getElementById('send-btn');
-        const errorContainer = document.getElementById('error-container');
+        // Input
+        let mediaStream = null;
+        let inputContext = null;
+        let scriptProcessor = null;
         
-        // Initialize Socket.IO connection
-        function init() {
-            socket = io();
+        // Visualization State
+        let inputVolume = 0;
+        let outputVolume = 0;
+        let outputAnalyser = null;
+        
+        // UI Elements
+        const btnConnect = document.getElementById('btn-connect');
+        const btnDisconnect = document.getElementById('btn-disconnect');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const mainStatus = document.getElementById('main-status');
+        const subStatus = document.getElementById('sub-status');
+        const fallbackIcon = document.getElementById('fallback-icon');
+        const canvas = document.getElementById('visualizer-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // ==========================================
+        // VISUALIZER LOGIC (Ported from React)
+        // ==========================================
+        let animationFrame = null;
+        let time = 0;
+
+        function startVisualizer() {
+            fallbackIcon.style.display = 'none';
             
-            socket.on('connect', () => {
-                console.log('Connected to server');
-                updateStatus('ready', 'Ready to connect');
-            });
-            
-            socket.on('joined', (data) => {
-                console.log('Joined session:', data);
-                updateStatus('connecting', 'Connecting to AI...');
-                
-                // Start the voice agent (CRM setting is handled server-side via admin config)
-                socket.emit('start_voice', {
-                    session_id: SESSION_ID,
-                    language: 'english'
-                });
-            });
-            
-            socket.on('voice_initializing', (data) => {
-                updateStatus('connecting', data.message);
-            });
-            
-            socket.on('voice_ready', (data) => {
-                console.log('Voice agent ready');
-                updateStatus('in-call', 'In call with Sage');
-                startCallTimer();
-                enableTextInput();
-                
-                // Clear welcome message and start conversation
-                conversationDisplay.innerHTML = '';
-                
-                // Start continuous audio streaming
-                startAudioStream();
-            });
-            
-            socket.on('voice_message', (data) => {
-                addMessage(data.role, data.text);
-                
-                if (data.role === 'agent') {
-                    updateStatus('speaking', 'Sage is speaking...');
-                } else {
-                    updateStatus('in-call', 'In call with Sage');
+            const draw = () => {
+                if (!isConnected) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    return;
                 }
-            });
-            
-            socket.on('voice_audio', (data) => {
-                queueAudio(data.audio, data.sample_rate);
-            });
-            
-            socket.on('voice_status', (data) => {
-                if (isInCall) {
-                    if (data.status === 'searching') {
-                        updateStatus('searching', '🔍 ' + data.message);
-                    } else {
-                        updateStatus(data.status === 'speaking' ? 'speaking' : 'in-call', 
-                                    data.status === 'speaking' ? 'Sage is speaking...' : 'In call with Sage');
-                    }
+
+                // Use max volume
+                const vol = Math.max(inputVolume, outputVolume);
+                const isOutput = outputVolume > inputVolume;
+
+                // Sage Theme Colors (matching reference)
+                // Output (Agent speaking): Teal/Green (74, 222, 128)
+                // Input (User speaking): Purple/Blue (56, 189, 248)
+                const r = isOutput ? 74 : 56;
+                const g = isOutput ? 222 : 189;
+                const b = isOutput ? 128 : 248;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // Base radius + volume bump + breathing
+                const radius = 60 + (vol * 50) + (Math.sin(time * 0.05) * 5);
+
+                // Draw Glow
+                const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.5, centerX, centerY, radius * 2);
+                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.8)`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw Core
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ripples
+                if (vol > 0.1) {
+                    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius + (Math.sin(time * 0.2) * 10) + 10, 0, Math.PI * 2);
+                    ctx.stroke();
                 }
-            });
-            
-            socket.on('voice_recommendations', (data) => {
-                console.log('Recommendations received:', data);
-                showRecommendations(data.recommendations);
-            });
-            
-            socket.on('voice_stopped', () => {
-                endCall();
-            });
-            
-            socket.on('error', (data) => {
-                showError(data.message);
-            });
-            
-            socket.on('disconnect', () => {
-                if (isInCall) {
-                    endCall();
-                }
-                updateStatus('ended', 'Disconnected');
-            });
-            
-            // Button handlers
-            joinBtn.addEventListener('click', joinCall);
-            endBtn.addEventListener('click', endCall);
-            
-            // Text input handlers
-            sendBtn.addEventListener('click', sendTextMessage);
-            textInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendTextMessage();
-                }
-            });
+
+                time++;
+                animationFrame = requestAnimationFrame(draw);
+            };
+            draw();
         }
-        
-        function updateStatus(status, message) {
-            statusIndicator.className = 'status-indicator ' + status;
-            statusLabel.textContent = message;
-            
-            if (status === 'in-call' || status === 'speaking') {
-                audioVisualizer.classList.add('active');
-            } else {
-                audioVisualizer.classList.remove('active');
-            }
+
+        function stopVisualizer() {
+            cancelAnimationFrame(animationFrame);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            fallbackIcon.style.display = 'flex';
         }
+
+        // ==========================================
+        // AUDIO HANDLING
+        // ==========================================
         
-        function showError(message) {
-            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
-            setTimeout(() => {
-                errorContainer.innerHTML = '';
-            }, 5000);
+        function initAudioContext() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioContext = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
+            
+            // Output Analyser for Visualization
+            outputAnalyser = audioContext.createAnalyser();
+            outputAnalyser.fftSize = 256;
+            outputAnalyser.connect(audioContext.destination); // Connect to speaker
         }
-        
-        function enableTextInput() {
-            textInput.disabled = false;
-            sendBtn.disabled = false;
-        }
-        
-        function disableTextInput() {
-            textInput.disabled = true;
-            sendBtn.disabled = true;
-        }
-        
-        // Join call
-        async function joinCall() {
-            if (isInCall) return;
-            
-            try {
-                // Request microphone permission first
-                await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                isInCall = true;
-                joinBtn.disabled = true;
-                joinBtn.classList.add('ringing');
-                endBtn.disabled = false;
-                
-                updateStatus('connecting', 'Joining call...');
-                
-                // Join the voice session room
-                socket.emit('join_session', {
-                    session_id: SESSION_ID,
-                    client_type: 'client'
-                });
-                
-            } catch (error) {
-                console.error('Microphone access denied:', error);
-                showError('Microphone access is required for voice calls. Please allow microphone access and try again.');
-                isInCall = false;
-                joinBtn.disabled = false;
-            }
-        }
-        
-        // End call
-        function endCall() {
-            if (!isInCall && !joinBtn.disabled) return;
-            
-            isInCall = false;
-            stopAudioStream();
-            stopCallTimer();
-            
-            joinBtn.disabled = false;
-            joinBtn.classList.remove('ringing');
-            endBtn.disabled = true;
-            disableTextInput();
-            
-            updateStatus('ended', 'Call ended');
-            audioVisualizer.classList.remove('active');
-            
-            // Notify server
-            socket.emit('stop_voice', { session_id: SESSION_ID });
-            socket.emit('leave_session', { session_id: SESSION_ID });
-            
-            // Add end message
-            addMessage('system', 'Call ended. Thank you for using our service!');
-        }
-        
-        // Start continuous audio streaming
-        async function startAudioStream() {
+
+        // Input Handling (Microphone)
+        async function startInputStream() {
             try {
                 mediaStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        sampleRate: INPUT_SAMPLE_RATE,
+                        sampleRate: 16000,
                         channelCount: 1,
                         echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
+                        autoGainControl: true,
+                        noiseSuppression: true
                     }
                 });
+
+                inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                const source = inputContext.createMediaStreamSource(mediaStream);
                 
-                audioContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
-                const source = audioContext.createMediaStreamSource(mediaStream);
+                // Use ScriptProcessor for data access (compatible with our socket flow)
+                scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
                 
-                // Create script processor for continuous streaming
-                audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-                
-                audioProcessor.onaudioprocess = (e) => {
-                    if (!isInCall) return;
-                    
+                scriptProcessor.onaudioprocess = (e) => {
+                    if (!isConnected) return;
+
                     const inputData = e.inputBuffer.getChannelData(0);
                     
-                    // Convert to 16-bit PCM
+                    // 1. Calculate Input Volume for Visualizer
+                    let sum = 0;
+                    for (let i = 0; i < inputData.length; i += 10) {
+                        sum += Math.abs(inputData[i]);
+                    }
+                    const avg = sum / (inputData.length / 10);
+                    inputVolume = Math.min(1, avg * 5); // Amplify for visuals
+
+                    // 2. Convert to PCM and send to server
+                    // We need Int16 for the backend
                     const pcmData = new Int16Array(inputData.length);
                     for (let i = 0; i < inputData.length; i++) {
                         pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
                     }
                     
-                    // Send audio chunk to server
+                    // Base64 encode
                     const base64Audio = arrayBufferToBase64(pcmData.buffer);
-                    socket.emit('voice_input', {
-                        session_id: SESSION_ID,
-                        audio: base64Audio
-                    });
+                    
+                    // Emit to server
+                    if (socket) {
+                        socket.emit('voice_input', {
+                            session_id: SESSION_ID,
+                            audio: base64Audio
+                        });
+                    }
                 };
-                
-                source.connect(audioProcessor);
-                audioProcessor.connect(audioContext.destination);
-                
-                console.log('Audio streaming started');
-                
-            } catch (error) {
-                console.error('Error starting audio stream:', error);
-                showError('Failed to start audio. Please check microphone permissions.');
+
+                source.connect(scriptProcessor);
+                scriptProcessor.connect(inputContext.destination);
+
+            } catch (err) {
+                console.error("Error starting input stream", err);
+                alert("Could not access microphone.");
             }
         }
-        
-        // Stop audio streaming
-        function stopAudioStream() {
-            if (audioProcessor) {
-                audioProcessor.disconnect();
-                audioProcessor = null;
-            }
-            
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-            
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-            
-            console.log('Audio streaming stopped');
+
+        function stopInputStream() {
+            if (scriptProcessor) scriptProcessor.disconnect();
+            if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+            if (inputContext) inputContext.close();
+            inputVolume = 0;
         }
-        
-        // Call timer
-        function startCallTimer() {
-            callStartTime = Date.now();
-            callTimer.style.display = 'inline';
-            callTimer.textContent = '00:00';
-            
-            callTimerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
-                const seconds = (elapsed % 60).toString().padStart(2, '0');
-                callTimer.textContent = `${minutes}:${seconds}`;
-            }, 1000);
-        }
-        
-        function stopCallTimer() {
-            if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-            }
-            callTimer.style.display = 'none';
-        }
-        
-        // Audio playback queue
-        function queueAudio(base64Audio, sampleRate) {
-            audioQueue.push({ audio: base64Audio, sampleRate: sampleRate || OUTPUT_SAMPLE_RATE });
-            if (!isPlayingAudio) {
-                playNextAudio();
+
+        // Output Handling (Playback)
+        function queueAudio(base64Data) {
+            audioQueue.push(base64Data);
+            if (!isPlaying) {
+                playNextChunk();
             }
         }
-        
-        async function playNextAudio() {
+
+        async function playNextChunk() {
             if (audioQueue.length === 0) {
-                isPlayingAudio = false;
-                if (isInCall) {
-                    updateStatus('in-call', 'In call with Sage');
-                }
+                isPlaying = false;
+                outputVolume = 0;
                 return;
             }
-            
-            isPlayingAudio = true;
-            const { audio, sampleRate } = audioQueue.shift();
+
+            isPlaying = true;
+            const base64Data = audioQueue.shift();
             
             try {
-                const audioBuffer = base64ToArrayBuffer(audio);
-                const ctx = new AudioContext({ sampleRate: sampleRate });
+                const audioBuffer = base64ToArrayBuffer(base64Data);
                 
+                // Create buffer
+                // Since we know it's 24kHz PCM 16-bit from backend
                 const pcmData = new Int16Array(audioBuffer);
                 const floatData = new Float32Array(pcmData.length);
-                
                 for (let i = 0; i < pcmData.length; i++) {
                     floatData[i] = pcmData[i] / 32768;
                 }
                 
-                const buffer = ctx.createBuffer(1, floatData.length, sampleRate);
+                const buffer = audioContext.createBuffer(1, floatData.length, OUTPUT_SAMPLE_RATE);
                 buffer.copyToChannel(floatData, 0);
-                
-                const source = ctx.createBufferSource();
+
+                const source = audioContext.createBufferSource();
                 source.buffer = buffer;
-                source.connect(ctx.destination);
-                source.start();
+                
+                // Connect to Analyser for Output Volume
+                source.connect(outputAnalyser);
+                // Analyser is already connected to destination in init
                 
                 source.onended = () => {
-                    ctx.close();
-                    playNextAudio();
+                    playNextChunk();
                 };
                 
-            } catch (error) {
-                console.error('Error playing audio:', error);
-                playNextAudio();
+                source.start();
+                
+                // Update output volume from analyser loop
+                updateOutputVolume();
+
+            } catch (e) {
+                console.error("Playback error", e);
+                playNextChunk();
             }
         }
-        
-        // Text message
-        function sendTextMessage() {
-            const text = textInput.value.trim();
-            if (!text || !isInCall) return;
-            
-            socket.emit('voice_input', {
-                session_id: SESSION_ID,
-                text: text
-            });
-            
-            addMessage('user', text);
-            textInput.value = '';
-        }
-        
-        // Add message to conversation
-        function addMessage(role, text) {
-            const messageEl = document.createElement('div');
-            messageEl.className = `conversation-message ${role}`;
-            
-            const roleLabel = role === 'agent' ? '🤖 Sage' : role === 'user' ? '👤 You' : 'ℹ️ System';
-            
-            messageEl.innerHTML = `
-                <div class="message-role">${roleLabel}</div>
-                <div class="message-text">${text}</div>
-            `;
-            
-            conversationDisplay.appendChild(messageEl);
-            conversationDisplay.scrollTop = conversationDisplay.scrollHeight;
-        }
-        
-        // Show recommendations in the UI
-        function showRecommendations(recommendations) {
-            const panel = document.getElementById('recommendations-panel');
-            const list = document.getElementById('recommendations-list');
-            
-            if (!recommendations || recommendations.length === 0) {
+
+        function updateOutputVolume() {
+            if (!isPlaying) {
+                outputVolume = 0;
                 return;
             }
             
-            list.innerHTML = recommendations.map((rec, i) => `
-                <div class="recommendation-card">
-                    <div class="rec-header">
-                        <span class="rec-rank">${i + 1}</span>
-                        <span class="rec-name">${rec.community_name || 'Community #' + (rec.community_id || i+1)}</span>
-                        <span class="rec-price">$${(rec.monthly_fee || rec.base_price || 'N/A').toLocaleString()}/mo</span>
-                    </div>
-                    <div class="rec-details">
-                        ${rec.city ? rec.city + ' • ' : ''}${rec.care_level || 'Assisted Living'}
-                    </div>
-                    <span class="rec-score">${Math.round((rec.final_score || rec.score || 0) * 100)}% match</span>
-                </div>
-            `).join('');
+            const dataArray = new Uint8Array(outputAnalyser.frequencyBinCount);
+            outputAnalyser.getByteTimeDomainData(dataArray);
             
-            panel.style.display = 'block';
+            let sum = 0;
+            for(let i = 0; i < dataArray.length; i++) {
+                const v = (dataArray[i] - 128) / 128.0;
+                sum += v * v;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            outputVolume = Math.min(1, rms * 5);
             
-            // Also add a system message
-            addMessage('system', `✅ Found ${recommendations.length} matching communities! Sage will tell you about them.`);
+            requestAnimationFrame(updateOutputVolume);
         }
+
+        // ==========================================
+        // CONNECTION & UI LOGIC
+        // ==========================================
+
+        function setUIState(state) {
+            if (state === 'connected') {
+                isConnected = true;
+                btnConnect.style.display = 'none';
+                btnDisconnect.style.display = 'flex';
+                statusDot.classList.add('active');
+                statusText.innerText = 'Live';
+                mainStatus.innerText = "Listening...";
+                subStatus.innerText = "Go ahead, speak naturally.";
+                startVisualizer();
+            } else if (state === 'disconnected') {
+                isConnected = false;
+                btnConnect.style.display = 'flex';
+                btnDisconnect.style.display = 'none';
+                statusDot.classList.remove('active');
+                statusText.innerText = 'Offline';
+                mainStatus.innerText = "How can I help you today?";
+                subStatus.innerText = "Connect to start a voice consultation.";
+                stopVisualizer();
+                stopInputStream();
+            } else if (state === 'connecting') {
+                btnConnect.disabled = true;
+                btnConnect.innerHTML = '<span class="animate-spin" style="display:inline-block; width:1rem; height:1rem; border:2px solid white; border-top-color:transparent; border-radius:50%;"></span> Connecting...';
+            }
+        }
+
+        btnConnect.onclick = async () => {
+            setUIState('connecting');
+            
+            // 1. Start Audio Contexts
+            initAudioContext();
+            await audioContext.resume();
+            
+            // 2. Start Microphone
+            await startInputStream();
+            
+            // 3. Connect Socket
+            socket.emit('join_session', {
+                session_id: SESSION_ID,
+                client_type: 'client'
+            });
+        };
+
+        btnDisconnect.onclick = () => {
+            socket.emit('stop_voice', { session_id: SESSION_ID });
+            setUIState('disconnected');
+            btnConnect.disabled = false;
+            btnConnect.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg> Start Consultation`;
+        };
+
+        // Socket.IO Initialization
+        socket = io();
+
+        socket.on('connect', () => {
+            console.log("Socket connected");
+        });
+
+        socket.on('joined', () => {
+            // Start voice agent on server
+            socket.emit('start_voice', {
+                session_id: SESSION_ID,
+                language: 'english'
+            });
+        });
+
+        socket.on('voice_ready', () => {
+            setUIState('connected');
+        });
+
+        socket.on('voice_audio', (data) => {
+            queueAudio(data.audio);
+        });
         
-        // Utility functions
+        socket.on('voice_recommendations', (data) => {
+            showRecommendations(data.recommendations);
+        });
+
+        // Helpers
         function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
             let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
                 binary += String.fromCharCode(bytes[i]);
             }
             return btoa(binary);
         }
-        
+
         function base64ToArrayBuffer(base64) {
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-                bytes[i] = binary.charCodeAt(i);
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
             }
             return bytes.buffer;
         }
         
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', init);
+        function showRecommendations(recs) {
+            const panel = document.getElementById('recommendations-panel');
+            const list = document.getElementById('recommendations-list');
+            
+            list.innerHTML = recs.map(rec => `
+                <div class="rec-card">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <h4 style="font-weight:600;">${rec.community_name}</h4>
+                        <span class="rec-badge">${Math.round(rec.final_score * 100)}% Match</span>
+                    </div>
+                    <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.5rem;">${rec.city || 'Location N/A'} • ${rec.care_level}</p>
+                    <div style="font-weight:600; color:var(--primary-color);">$${rec.monthly_fee}/mo</div>
+                </div>
+            `).join('');
+            
+            panel.classList.add('active');
+        }
     </script>
 </body>
 </html>
-

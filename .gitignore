@@ -95,4 +95,7 @@ WEBSOCKET_*.md
 push_to_personal_github.sh
 
 # UI Reskin Design Files
-ui-reskin/
+ui-reskin/sage---senior-living-voice-agent/
+
+# Sage Voice Agent Reference Implementation
+sage---senior-living-voice-agent/
