@@ -479,11 +479,11 @@ class GeminiRanker(RankingDimension):
         self.api_url = "https://openrouter.ai/api/v1/chat/completions"
         self.model_name = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
         
-        # OpenRouter attribution headers (for app visibility and analytics)
+        # OpenRouter attribution headers (OPTIONAL - only for app visibility/analytics)
         # HTTP-Referer: Identifies your app in OpenRouter's public rankings
-        # X-Title: Sets your app's display name (required if using localhost)
-        self.app_url = os.getenv('APP_URL', 'http://localhost:5050')  # Default to localhost for dev
-        self.app_name = os.getenv('APP_NAME', 'Senior Living Recommendations')
+        # X-Title: Sets your app's display name (only needed if using localhost for tracking)
+        self.app_url = os.getenv('APP_URL')  # Optional - only set if you want attribution
+        self.app_name = os.getenv('APP_NAME')  # Optional - only set if you want attribution
 
     def _call_gemini(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Dict[str, Any]:
         """Call Gemini API via OpenRouter with structured JSON output, timeout, and retry logic"""

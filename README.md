@@ -59,11 +59,11 @@ Edit `.env` with your settings:
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 OPENROUTER_MODEL=google/gemini-2.5-flash
 
-# OpenRouter Attribution (for app visibility and analytics)
-# APP_URL: Identifies your app in OpenRouter's public rankings (default: http://localhost:5050)
-# APP_NAME: Sets your app's display name (required if using localhost)
-APP_URL=http://localhost:5050  # Use your production URL when deployed
-APP_NAME=Senior Living Recommendations
+# Optional: OpenRouter Attribution (only if you want app visibility/analytics)
+# APP_URL: Identifies your app in OpenRouter's public rankings
+# APP_NAME: Sets your app's display name
+# APP_URL=https://your-app.com
+# APP_NAME=Senior Living Recommendations
 
 # Required: Gemini API (for voice agent - still uses direct API)
 GEMINI_API_KEY=your_gemini_api_key_here
