@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeAudioUpload();
     initializeConsultationForms();
     initializeDatabaseSearch();
-    initializeLiveSession();
     checkSystemHealth();
 });
 
