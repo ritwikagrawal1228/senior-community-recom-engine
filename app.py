@@ -1830,14 +1830,13 @@ def handle_start_voice(data):
                         for msg in voice_session.conversation_history
                     ])
                     
-                    # Initialize ranking engine and run
-                    engine = RankingEngine()
-                    engine.analyze_client_needs(client_requirements)
-                    engine.run_comprehensive_ranking()
+                    # Use the SAME workflow as audio/text - process transcription as text input
+                    # This ensures identical backend processing, CRM format, and logging
+                    system = get_system()
+                    result = system.process_text_input(transcription)
                     
-                    # Get top recommendations
-                    results = engine.export_to_crm_format()
-                    recommendations = results.get('top_recommendations', [])[:5]
+                    # Extract recommendations from result (same format as audio/text)
+                    recommendations = result.get('recommendations', [])[:5]
                     
                     processing_time = (datetime.now() - start_time).total_seconds()
                     logger.info(f"Got {len(recommendations)} recommendations in {processing_time:.1f}s")
