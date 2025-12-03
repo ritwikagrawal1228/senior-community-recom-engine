@@ -916,11 +916,26 @@
             }
             
             list.innerHTML = recs.map((rec, idx) => {
+                // Extract from nested structure (same as export_to_crm_format)
                 const name = rec.community_name || rec.name || `Community #${rec.community_id || idx + 1}`;
-                const score = rec.final_score || rec.score || 0;
-                const city = rec.city || 'Location N/A';
-                const careLevel = rec.care_level || 'Assisted Living';
-                const price = rec.monthly_fee || rec.base_price || 'N/A';
+                const score = rec.final_score || rec.combined_rank_score || rec.score || 0;
+                
+                // Get city from community_data (full database record)
+                const communityData = rec.community_data || {};
+                const city = communityData.City || communityData.city || rec.city || 'Location N/A';
+                
+                // Get care level from community_data
+                const careLevel = communityData.CareLevel || communityData.care_level || rec.care_level || 'Assisted Living';
+                
+                // Get price from key_metrics (structured metrics)
+                const keyMetrics = rec.key_metrics || {};
+                const price = keyMetrics.monthly_fee || rec.monthly_fee || rec.base_price || communityData.MonthlyFee || communityData.monthly_fee || 'N/A';
+                
+                // Get additional details from community_data
+                const zipCode = communityData.ZipCode || communityData.zip_code || '';
+                const state = communityData.State || communityData.state || '';
+                const address = communityData.Address || communityData.address || '';
+                const distance = keyMetrics.distance_miles || rec.distance_miles || '';
                 
                 return `
                     <div class="rec-card">
@@ -928,8 +943,14 @@
                             <h4 style="font-weight:600;">${name}</h4>
                             <span class="rec-badge">${Math.round(score * 100)}% Match</span>
                         </div>
-                        <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.5rem;">${city} • ${careLevel}</p>
-                        <div style="font-weight:600; color:var(--primary-color);">$${typeof price === 'number' ? price.toLocaleString() : price}/mo</div>
+                        <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:0.5rem;">
+                            ${city}${state ? ', ' + state : ''}${zipCode ? ' ' + zipCode : ''} • ${careLevel}
+                            ${distance ? ` • ${distance.toFixed(1)} mi` : ''}
+                        </p>
+                        ${address ? `<p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">${address}</p>` : ''}
+                        <div style="font-weight:600; color:var(--primary-color);">
+                            $${typeof price === 'number' ? price.toLocaleString() : price}/mo
+                        </div>
                     </div>
                 `;
             }).join('');
