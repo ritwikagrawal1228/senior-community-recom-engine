@@ -1,6 +1,7 @@
 """
 Gemini Real-Time Voice Agent for Senior Living Consultations
-Uses Gemini 2.0 Flash Live API for real-time voice conversations
+Uses Gemini 2.5 Flash Native Audio via google-genai SDK
+Based on official Google AI Studio example
 """
 
 import os
@@ -13,22 +14,24 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass, field
 
-# WebSocket imports
-try:
-    from websockets.asyncio.client import connect as ws_connect
-except ImportError:
-    from websockets import connect as ws_connect
-
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Gemini Live API Configuration
-GEMINI_HOST = 'generativelanguage.googleapis.com'
-GEMINI_MODEL = 'models/gemini-2.0-flash-live-001'
-SAMPLE_RATE = 24000
+# Audio configuration
+SEND_SAMPLE_RATE = 16000   # Input audio must be 16kHz
+RECEIVE_SAMPLE_RATE = 24000  # Output audio is 24kHz
+SAMPLE_RATE = RECEIVE_SAMPLE_RATE  # For backward compatibility
+
+# Model configuration - using the official model from Google AI Studio
+MODEL = os.getenv('GEMINI_LIVE_MODEL', 'models/gemini-2.5-flash-native-audio-preview-09-2025')
+if not MODEL.startswith('models/'):
+    MODEL = f'models/{MODEL}'
+
 
 @dataclass
 class VoiceSession:
@@ -40,8 +43,6 @@ class VoiceSession:
     client_info: Dict[str, Any] = field(default_factory=dict)
     conversation_history: list = field(default_factory=list)
     recommendations: list = field(default_factory=list)
-    gemini_ws: Any = None
-    client_ws: Any = None
     
     def __post_init__(self):
         # Session expires based on configured timeout
@@ -69,6 +70,7 @@ active_sessions: Dict[str, VoiceSession] = {}
 MAX_CONCURRENT_SESSIONS = 10  # Maximum parallel sessions
 SESSION_TIMEOUT_MINUTES = 30  # Session expiration time
 
+
 def get_max_sessions() -> int:
     """Get max sessions from admin config if available"""
     try:
@@ -77,6 +79,7 @@ def get_max_sessions() -> int:
     except:
         return MAX_CONCURRENT_SESSIONS
 
+
 def get_session_timeout() -> int:
     """Get session timeout from admin config if available"""
     try:
@@ -84,6 +87,7 @@ def get_session_timeout() -> int:
         return admin_config.get_session_timeout()
     except:
         return SESSION_TIMEOUT_MINUTES
+
 
 def get_voice_system_instruction(language: str = 'english') -> str:
     """Get the system instruction for the voice agent"""
@@ -105,449 +109,313 @@ PERSONALITY:
 YOUR CONVERSATION FLOW:
 
 1. GREETING (First message):
-   - Introduce yourself warmly
-   - Explain you're here to help find the perfect community
+   - Introduce yourself warmly: "Hi! I'm Sage, your AI assistant for finding senior living communities."
+   - Explain you'll ask a few questions to find the best matches
    - Ask if they're looking for themselves or a loved one
 
 2. INFORMATION GATHERING (Ask one at a time, naturally):
-   - Care Level: "What type of care are you looking for? Independent living for those who are active, assisted living for daily support, or memory care for cognitive needs?"
-   - Budget: "What monthly budget range works for you? This helps me find communities that fit your finances."
-   - Location: "What area or ZIP code would you prefer? Being close to family is often important."
-   - Timeline: "How soon are you hoping to make this transition? Immediately, in the next few months, or are you just planning ahead?"
-   - Special Needs: "Are there any special requirements? For example, pets, couples staying together, or specific medical needs?"
+   - Care Level: "What type of care are you looking for? Independent living, assisted living, or memory care?"
+   - Budget: "What's your monthly budget range? For example, $3,000 to $5,000?"
+   - Location: "What area or ZIP code do you prefer?"
+   - Timeline: "When are you hoping to move? Immediately, in a few months, or just planning ahead?"
+   - Special Needs: "Any special requirements? Like pets, couples, or specific medical needs?"
 
-3. PROCESSING PHASE:
-   - Once you have the key information, tell them you're searching
-   - Make friendly small talk while they wait (2-3 minutes)
-   - Topics: amenities at communities, what to expect, questions they might have
-   - Periodically reassure them the search is ongoing
+3. CONFIRM & SEARCH:
+   When you have collected: care_level, budget, location, and timeline, you MUST say EXACTLY:
+   "SEARCH_READY: care_level=[value], budget=[value], location=[value], timeline=[value], special_needs=[value or none]"
+   
+   Then say: "Perfect! Let me search our database of over 500 communities. This usually takes about 2 minutes. While I search, is there anything specific you're hoping to find in a community?"
 
-4. RESULTS PHASE:
-   - Announce excitedly that you found matches
-   - Present top 3 recommendations clearly:
-     * Community name/ID
-     * Care level and monthly fee
-     * Why it's a good match
-     * Any special features
-   - Ask if they have questions about any option
+4. SMALL TALK (While waiting for results):
+   - Keep the conversation going naturally for 2-3 minutes
+   - Ask about their interests, hobbies, what activities they enjoy
+   - Share general info about what to expect in senior living
+   - Periodically say "Still searching..." or "Almost done..."
+
+5. WHEN YOU RECEIVE RESULTS:
+   You will receive a message starting with "RESULTS:" containing the recommendations.
+   Present them enthusiastically:
+   - "Great news! I found some excellent matches for you!"
+   - Present top 3 clearly with: name, location, price, care level, and why it's a good fit
+   - Ask if they have questions about any community
 
 IMPORTANT RULES:
-- Keep responses concise (2-3 sentences max for voice)
-- Use natural speech patterns with filler words occasionally
+- Keep responses SHORT (2-3 sentences max for voice)
+- Use natural speech patterns
 - Show empathy when discussing sensitive topics
-- Never make up specific community names - use "Community #X" format
-- If unsure about something, ask clarifying questions
+- The SEARCH_READY message is critical - it triggers the actual search
 - {language_suffix}
-
-TOOL USAGE:
-When you've collected enough information, use the search_communities function to find matches.
-When presenting results, use the present_recommendations function.
 """
 
 
-def encode_text_input(text: str) -> dict:
-    """Encode text input for Gemini Live API"""
-    return {
-        'clientContent': {
-            'turns': [{
-                'role': 'user',
-                'parts': [{'text': text}]
-            }],
-            'turnComplete': True
-        }
-    }
-
-
-def encode_audio_input(audio_data: bytes) -> dict:
-    """Encode audio input for Gemini Live API"""
-    return {
-        'realtimeInput': {
-            'mediaChunks': [{
-                'mimeType': f'audio/pcm;rate={SAMPLE_RATE}',
-                'data': base64.b64encode(audio_data).decode('utf-8')
-            }]
-        }
-    }
-
-
-def decode_response(response: dict) -> Dict[str, Any]:
-    """Decode Gemini Live API response"""
-    result = {
-        'type': 'unknown',
-        'text': None,
-        'audio': None,
-        'turn_complete': False,
-        'interrupted': False,
-        'tool_call': None
-    }
-    
-    server_content = response.get('serverContent', {})
-    
-    # Check for model turn (text or audio response)
-    model_turn = server_content.get('modelTurn', {})
-    if model_turn:
-        parts = model_turn.get('parts', [])
-        for part in parts:
-            # Text response
-            if 'text' in part:
-                result['type'] = 'text'
-                result['text'] = part['text']
-            # Audio response
-            elif 'inlineData' in part:
-                result['type'] = 'audio'
-                result['audio'] = base64.b64decode(part['inlineData'].get('data', ''))
-    
-    # Check for turn complete
-    if server_content.get('turnComplete'):
-        result['turn_complete'] = True
-    
-    # Check for interruption
-    if server_content.get('interrupted'):
-        result['interrupted'] = True
-    
-    # Check for tool call
-    if 'toolCall' in response:
-        result['type'] = 'tool_call'
-        result['tool_call'] = response['toolCall']
-    
-    return result
+def get_live_config(language: str = 'english') -> types.LiveConnectConfig:
+    """Get the Live API configuration"""
+    return types.LiveConnectConfig(
+        response_modalities=["AUDIO"],
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                    voice_name="Puck"  # Friendly voice
+                )
+            )
+        ),
+        system_instruction=types.Content(
+            parts=[types.Part(text=get_voice_system_instruction(language))]
+        ),
+        # Context window compression for longer conversations
+        context_window_compression=types.ContextWindowCompressionConfig(
+            trigger_tokens=25600,
+            sliding_window=types.SlidingWindow(target_tokens=12800),
+        ),
+    )
 
 
 class GeminiVoiceAgent:
-    """Handles real-time voice conversations with Gemini"""
+    """Handles real-time voice conversations with Gemini using the official SDK"""
     
     def __init__(self, api_key: str, session_id: str, language: str = 'english'):
         self.api_key = api_key
         self.session_id = session_id
         self.language = language
-        self.ws = None
+        self.session = None
         self.is_connected = False
         self.collected_info = {}
+        self.search_triggered = False
+        self.recommendations_sent = False
+        
+        # Callbacks
         self.on_message_callback: Optional[Callable] = None
         self.on_audio_callback: Optional[Callable] = None
         self.on_status_callback: Optional[Callable] = None
+        self.on_search_ready_callback: Optional[Callable] = None  # Called when agent is ready to search
         
-    async def connect(self) -> bool:
-        """Connect to Gemini Live API"""
-        try:
-            uri = f'wss://{GEMINI_HOST}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={self.api_key}'
-            
-            self.ws = await ws_connect(uri)
-            
-            # Send setup message
-            setup_message = {
-                'setup': {
-                    'model': GEMINI_MODEL,
-                    'generationConfig': {
-                        'responseModalities': ['AUDIO', 'TEXT'],
-                        'speechConfig': {
-                            'voiceConfig': {
-                                'prebuiltVoiceConfig': {
-                                    'voiceName': 'Aoede'  # Friendly female voice
-                                }
-                            }
-                        }
-                    },
-                    'systemInstruction': {
-                        'parts': [{'text': get_voice_system_instruction(self.language)}]
-                    },
-                    'tools': [{
-                        'functionDeclarations': [
-                            {
-                                'name': 'search_communities',
-                                'description': 'Search for senior living communities based on collected client information',
-                                'parameters': {
-                                    'type': 'OBJECT',
-                                    'properties': {
-                                        'care_level': {
-                                            'type': 'STRING',
-                                            'description': 'Type of care needed: independent, assisted, or memory_care'
-                                        },
-                                        'budget_min': {
-                                            'type': 'NUMBER',
-                                            'description': 'Minimum monthly budget'
-                                        },
-                                        'budget_max': {
-                                            'type': 'NUMBER',
-                                            'description': 'Maximum monthly budget'
-                                        },
-                                        'zip_code': {
-                                            'type': 'STRING',
-                                            'description': 'Preferred ZIP code or area'
-                                        },
-                                        'timeline': {
-                                            'type': 'STRING',
-                                            'description': 'When they need to move: immediate, near_term, flexible'
-                                        },
-                                        'special_needs': {
-                                            'type': 'STRING',
-                                            'description': 'Any special requirements like pets, couples, etc.'
-                                        }
-                                    },
-                                    'required': ['care_level']
-                                }
-                            },
-                            {
-                                'name': 'present_recommendations',
-                                'description': 'Present the found recommendations to the client',
-                                'parameters': {
-                                    'type': 'OBJECT',
-                                    'properties': {
-                                        'recommendations': {
-                                            'type': 'ARRAY',
-                                            'description': 'List of community recommendations',
-                                            'items': {
-                                                'type': 'OBJECT',
-                                                'properties': {
-                                                    'community_id': {'type': 'STRING'},
-                                                    'care_level': {'type': 'STRING'},
-                                                    'monthly_fee': {'type': 'NUMBER'},
-                                                    'match_score': {'type': 'NUMBER'},
-                                                    'highlights': {'type': 'STRING'}
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        ]
-                    }]
-                }
-            }
-            
-            await self.ws.send(json.dumps(setup_message))
-            
-            # Wait for setup complete
-            response = await self.ws.recv()
-            setup_response = json.loads(response)
-            
-            if 'setupComplete' in setup_response:
-                self.is_connected = True
-                logger.info(f"Gemini Voice Agent connected for session {self.session_id}")
-                return True
-            else:
-                logger.error(f"Setup failed: {setup_response}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Failed to connect to Gemini: {e}")
-            return False
+        # Audio queues
+        self.audio_in_queue = None
+        self.audio_out_queue = None
+        
+        # Tasks
+        self._receive_task = None
+        self._send_task = None
+        
+        # Initialize client
+        self.client = genai.Client(
+            http_options={"api_version": "v1alpha"},
+            api_key=api_key,
+        )
     
-    async def send_text(self, text: str):
-        """Send text message to Gemini"""
-        if not self.is_connected or not self.ws:
+    def parse_search_ready(self, text: str) -> Optional[Dict[str, Any]]:
+        """Parse the SEARCH_READY message from the agent"""
+        import re
+        
+        if 'SEARCH_READY:' not in text:
+            return None
+        
+        try:
+            # Extract the parameters
+            match = re.search(r'SEARCH_READY:\s*(.+?)(?:\.|$)', text, re.IGNORECASE)
+            if not match:
+                return None
+            
+            params_str = match.group(1)
+            params = {}
+            
+            # Parse key=value pairs
+            for pair in re.findall(r'(\w+)=\[([^\]]*)\]', params_str):
+                key, value = pair
+                params[key] = value.strip() if value.strip().lower() != 'none' else None
+            
+            # Map to our expected format
+            return {
+                'care_level': params.get('care_level', ''),
+                'budget': params.get('budget', ''),
+                'location': params.get('location', ''),
+                'timeline': params.get('timeline', ''),
+                'special_requirements': params.get('special_needs', '')
+            }
+        except Exception as e:
+            logger.error(f"Error parsing SEARCH_READY: {e}")
+            return None
+    
+    async def send_recommendations(self, recommendations: list):
+        """Send recommendations back to the agent to speak to the user"""
+        if not self.session or not recommendations:
             return
         
-        message = encode_text_input(text)
-        await self.ws.send(json.dumps(message))
+        # Format recommendations for the agent to speak
+        results_text = "RESULTS: Here are the top matches:\n"
+        
+        for i, rec in enumerate(recommendations[:5], 1):
+            name = rec.get('community_name', f"Community #{rec.get('community_id', i)}")
+            price = rec.get('monthly_fee', rec.get('base_price', 'Price varies'))
+            care = rec.get('care_level', 'Assisted Living')
+            city = rec.get('city', '')
+            score = rec.get('final_score', rec.get('score', 0))
+            
+            results_text += f"\n{i}. {name}"
+            if city:
+                results_text += f" in {city}"
+            results_text += f" - ${price}/month, {care} care, match score {int(score*100)}%"
+        
+        results_text += "\n\nPlease present these to the caller in a friendly, conversational way."
+        
+        logger.info(f"Sending recommendations to agent: {results_text[:200]}...")
+        
+        try:
+            await self.session.send(input=results_text, end_of_turn=True)
+            self.recommendations_sent = True
+        except Exception as e:
+            logger.error(f"Error sending recommendations: {e}")
+        
+    async def run(self):
+        """Main run loop - connects and handles the entire session lifecycle using TaskGroup"""
+        try:
+            logger.info(f"Connecting to Gemini Live API for session {self.session_id}...")
+            logger.info(f"Using model: {MODEL}")
+            
+            config = get_live_config(self.language)
+            
+            # Use async with for both connection and task group (like official example)
+            async with (
+                self.client.aio.live.connect(model=MODEL, config=config) as session,
+                asyncio.TaskGroup() as tg,
+            ):
+                self.session = session
+                self.is_connected = True
+                self.audio_in_queue = asyncio.Queue()
+                self.audio_out_queue = asyncio.Queue(maxsize=5)
+                
+                logger.info(f"✅ Gemini Voice Agent connected for session {self.session_id}")
+                
+                # Signal that we're ready
+                if self.on_status_callback:
+                    await self.on_status_callback('connected', 'Voice agent ready')
+                
+                # Create concurrent tasks (like official Google example)
+                tg.create_task(self._send_realtime_task())  # Sends audio from queue to Gemini
+                tg.create_task(self._receive_task())         # Receives from Gemini
+                
+                # Start conversation - this will trigger the greeting
+                await session.send(input="Hello, I'm ready to start the consultation.", end_of_turn=True)
+                
+                # Keep running until disconnected
+                while self.is_connected:
+                    await asyncio.sleep(0.1)
+                
+                # Cancel tasks when done
+                raise asyncio.CancelledError("Session ended")
+                        
+        except asyncio.CancelledError:
+            logger.info(f"Voice agent session cancelled for {self.session_id}")
+        except ExceptionGroup as eg:
+            logger.error(f"Voice agent task group error: {eg}")
+            import traceback
+            traceback.print_exception(eg)
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to Gemini: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        finally:
+            logger.info(f"Voice agent session ended for {self.session_id}")
+            self.is_connected = False
+            self.session = None
+    
+    async def _send_realtime_task(self):
+        """Continuously send queued audio/text to Gemini (runs as concurrent task)"""
+        logger.info("Send realtime task started")
+        while self.is_connected:
+            try:
+                # Wait for item with timeout to allow checking is_connected
+                try:
+                    msg = await asyncio.wait_for(self.audio_out_queue.get(), timeout=0.1)
+                    if self.session:
+                        await self.session.send(input=msg)
+                except asyncio.TimeoutError:
+                    continue
+            except Exception as e:
+                if self.is_connected:
+                    logger.error(f"Error in send task: {e}")
+                break
+        logger.info("Send realtime task ended")
+    
+    async def _receive_task(self):
+        """Receive responses from Gemini and forward to callbacks (runs as concurrent task)"""
+        logger.info("Receive task started")
+        accumulated_text = ""
+        
+        while self.is_connected:
+            try:
+                turn = self.session.receive()
+                async for response in turn:
+                    # Handle audio data - send immediately to client
+                    if response.data:
+                        if self.on_audio_callback:
+                            await self.on_audio_callback(response.data)
+                    
+                    # Handle text
+                    if response.text:
+                        accumulated_text += response.text
+                        logger.debug(f"Received text chunk: {response.text[:50]}...")
+                        
+                        if self.on_message_callback:
+                            await self.on_message_callback('agent', response.text)
+                
+                # Turn complete - check for SEARCH_READY trigger
+                if accumulated_text and not self.search_triggered:
+                    search_params = self.parse_search_ready(accumulated_text)
+                    if search_params:
+                        logger.info(f"🔍 SEARCH_READY detected: {search_params}")
+                        self.search_triggered = True
+                        self.collected_info = search_params
+                        
+                        if self.on_search_ready_callback:
+                            await self.on_search_ready_callback(search_params)
+                
+                # Clear accumulated text for next turn
+                accumulated_text = ""
+                
+                # Clear audio queue on turn complete (for interruptions - like official example)
+                while not self.audio_in_queue.empty():
+                    self.audio_in_queue.get_nowait()
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                if self.is_connected:
+                    logger.error(f"Error in receive task: {e}")
+                break
+        
+        logger.info("Receive task ended")
     
     async def send_audio(self, audio_data: bytes):
-        """Send audio data to Gemini"""
-        if not self.is_connected or not self.ws:
-            return
-        
-        message = encode_audio_input(audio_data)
-        await self.ws.send(json.dumps(message))
-    
-    async def start_conversation(self):
-        """Start the conversation with a greeting"""
-        # Send initial trigger to start conversation
-        await self.send_text("Hello, I'm ready to start the consultation.")
-    
-    async def handle_tool_call(self, tool_call: dict) -> dict:
-        """Handle function calls from Gemini"""
-        function_calls = tool_call.get('functionCalls', [])
-        responses = []
-        
-        for fc in function_calls:
-            name = fc.get('name')
-            args = fc.get('args', {})
-            fc_id = fc.get('id')
-            
-            if name == 'search_communities':
-                # Store collected info
-                self.collected_info = args
-                
-                # Notify status change
-                if self.on_status_callback:
-                    await self.on_status_callback('processing', 'Searching communities...')
-                
-                # Simulate search (in real implementation, call recommendation system)
-                result = await self._search_communities(args)
-                
-                responses.append({
-                    'id': fc_id,
-                    'name': name,
-                    'response': {'result': result}
-                })
-                
-            elif name == 'present_recommendations':
-                if self.on_status_callback:
-                    await self.on_status_callback('results', 'Presenting recommendations')
-                
-                responses.append({
-                    'id': fc_id,
-                    'name': name,
-                    'response': {'result': {'success': True}}
-                })
-        
-        # Send tool response back to Gemini
-        if responses:
-            tool_response = {
-                'toolResponse': {
-                    'functionResponses': responses
-                }
-            }
-            await self.ws.send(json.dumps(tool_response))
-        
-        return responses
-    
-    async def _search_communities(self, criteria: dict) -> dict:
-        """Search for communities based on criteria using the real recommendation system"""
-        try:
-            # Try to use the actual recommendation system
-            from main_pipeline_ranking import RankingBasedRecommendationSystem
-            import pandas as pd
-            
-            system = RankingBasedRecommendationSystem()
-            
-            # Build client profile from collected criteria
-            care_level = criteria.get('care_level', 'assisted')
-            budget_min = criteria.get('budget_min', 0)
-            budget_max = criteria.get('budget_max', 10000)
-            zip_code = criteria.get('zip_code', '')
-            timeline = criteria.get('timeline', 'flexible')
-            special_needs = criteria.get('special_needs', '')
-            
-            # Map care level to system format
-            care_level_map = {
-                'independent': 'Independent Living',
-                'assisted': 'Assisted Living',
-                'memory_care': 'Memory Care',
-                'memory': 'Memory Care'
-            }
-            mapped_care = care_level_map.get(care_level.lower(), 'Assisted Living')
-            
-            # Create client profile
-            client_profile = {
-                'care_level': mapped_care,
-                'budget_range': f"${budget_min:,} - ${budget_max:,}",
-                'budget_min': budget_min,
-                'budget_max': budget_max,
-                'location': zip_code,
-                'zip_code': zip_code,
-                'timeline': timeline,
-                'special_requirements': special_needs,
-                'pets': 'yes' if 'pet' in special_needs.lower() else 'no',
-                'couples': 'yes' if 'couple' in special_needs.lower() else 'no'
-            }
-            
-            # Get recommendations
-            results = system.get_recommendations(client_profile, top_n=5)
-            
-            recommendations = []
-            for rec in results.get('recommendations', []):
-                recommendations.append({
-                    'community_id': str(rec.get('community_id', rec.get('CommunityID', 'N/A'))),
-                    'name': f"Community #{rec.get('community_id', rec.get('CommunityID', 'N/A'))}",
-                    'care_level': rec.get('care_level', mapped_care),
-                    'monthly_fee': rec.get('monthly_fee', rec.get('Monthly Fee', 0)),
-                    'match_score': rec.get('match_score', rec.get('score', 0)),
-                    'zip': rec.get('zip', rec.get('ZIP', '')),
-                    'highlights': rec.get('explanation', rec.get('match_reasons', 'Good match for your needs')),
-                    'waitlist': rec.get('waitlist', rec.get('Est. Waitlist Length', 'Unknown')),
-                    'enhanced': rec.get('enhanced', rec.get('Enhanced', False))
-                })
-            
-            if recommendations:
-                return {
-                    'success': True,
-                    'count': len(recommendations),
-                    'recommendations': recommendations
-                }
-            
-        except Exception as e:
-            logger.warning(f"Could not use real recommendation system: {e}")
-        
-        # Fallback to mock results if real system fails
-        care_level = criteria.get('care_level', 'assisted')
-        budget_max = criteria.get('budget_max', 6000)
-        
-        recommendations = [
-            {
-                'community_id': '101',
-                'name': 'Community #101',
-                'care_level': care_level.title(),
-                'monthly_fee': min(5200, budget_max),
-                'match_score': 95,
-                'zip': criteria.get('zip_code', '90210'),
-                'highlights': 'Pet-friendly, 24-hour care, gourmet dining, beautiful gardens',
-                'waitlist': 'None'
-            },
-            {
-                'community_id': '102',
-                'name': 'Community #102',
-                'care_level': care_level.title(),
-                'monthly_fee': min(4800, int(budget_max * 0.9)),
-                'match_score': 92,
-                'zip': criteria.get('zip_code', '90210'),
-                'highlights': 'Award-winning memory care, therapy services, family events',
-                'waitlist': '1-2 months'
-            },
-            {
-                'community_id': '103',
-                'name': 'Community #103',
-                'care_level': care_level.title(),
-                'monthly_fee': min(4500, int(budget_max * 0.85)),
-                'match_score': 89,
-                'zip': criteria.get('zip_code', '90210'),
-                'highlights': 'Exceptional dining, active social calendar, transportation',
-                'waitlist': 'None'
-            }
-        ]
-        
-        return {
-            'success': True,
-            'count': len(recommendations),
-            'recommendations': recommendations
-        }
-    
-    async def receive_loop(self):
-        """Main loop to receive and process messages from Gemini"""
-        if not self.ws:
+        """Queue audio data to send to Gemini"""
+        if not self.is_connected:
             return
         
         try:
-            async for message in self.ws:
-                response = json.loads(message)
-                decoded = decode_response(response)
-                
-                # Handle different response types
-                if decoded['type'] == 'text' and decoded['text']:
-                    if self.on_message_callback:
-                        await self.on_message_callback('agent', decoded['text'])
-                
-                elif decoded['type'] == 'audio' and decoded['audio']:
-                    if self.on_audio_callback:
-                        await self.on_audio_callback(decoded['audio'])
-                
-                elif decoded['type'] == 'tool_call' and decoded['tool_call']:
-                    await self.handle_tool_call(decoded['tool_call'])
-                
-                if decoded['interrupted']:
-                    logger.info("User interrupted")
-                
+            # Don't block if queue is full - drop oldest
+            if self.audio_out_queue.full():
+                try:
+                    self.audio_out_queue.get_nowait()
+                except:
+                    pass
+            
+            self.audio_out_queue.put_nowait({"data": audio_data, "mime_type": "audio/pcm"})
         except Exception as e:
-            logger.error(f"Error in receive loop: {e}")
-        finally:
-            self.is_connected = False
+            logger.error(f"Error queuing audio: {e}")
     
-    async def disconnect(self):
-        """Disconnect from Gemini"""
+    async def send_text(self, text: str):
+        """Send text message to Gemini directly"""
+        if not self.is_connected or not self.session:
+            return
+        
+        try:
+            await self.session.send(input=text, end_of_turn=True)
+        except Exception as e:
+            logger.error(f"Error sending text: {e}")
+    
+    def disconnect(self):
+        """Signal disconnect"""
         self.is_connected = False
-        if self.ws:
-            await self.ws.close()
-            self.ws = None
 
 
 def cleanup_expired_sessions():
@@ -637,6 +505,7 @@ __all__ = [
     'get_session',
     'end_session',
     'active_sessions',
-    'SAMPLE_RATE'
+    'SAMPLE_RATE',
+    'SEND_SAMPLE_RATE',
+    'RECEIVE_SAMPLE_RATE'
 ]
-

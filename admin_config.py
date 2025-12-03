@@ -22,7 +22,8 @@ DEFAULT_CONFIG = {
         'max_concurrent_sessions': 10,
         'session_timeout_minutes': 30,
         'default_language': 'english',
-        'enable_voice_agent': True
+        'enable_voice_agent': True,
+        'push_to_crm': True  # Automatically push voice consultation results to CRM
     },
     'ranking_weights': {
         'business': 1.0,

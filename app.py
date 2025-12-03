@@ -42,6 +42,47 @@ from voice_agent import (
 )
 import voice_agent  # For dynamic config updates
 from admin_config import admin_config, Event
+import run_logs_db  # For persistent run logging
+import re
+
+# Helper functions for voice agent budget extraction
+def extract_budget_min(budget_str: str) -> int:
+    """Extract minimum budget from a string like '$3,000 to $5,000' or '3000-5000'"""
+    if not budget_str:
+        return 0
+    
+    # Remove $ and commas
+    cleaned = re.sub(r'[$,]', '', str(budget_str))
+    
+    # Find all numbers
+    numbers = re.findall(r'\d+', cleaned)
+    
+    if numbers:
+        return int(numbers[0])
+    return 0
+
+
+def extract_budget_max(budget_str: str) -> int:
+    """Extract maximum budget from a string like '$3,000 to $5,000' or '3000-5000'"""
+    if not budget_str:
+        return 10000  # Default max
+    
+    # Remove $ and commas
+    cleaned = re.sub(r'[$,]', '', str(budget_str))
+    
+    # Find all numbers
+    numbers = re.findall(r'\d+', cleaned)
+    
+    if len(numbers) >= 2:
+        return int(numbers[1])
+    elif numbers:
+        # If only one number, assume it's a max with some flexibility
+        return int(numbers[0]) + 1000
+    return 10000
+
+
+# Initialize run logs database
+run_logs_db.init_database()
 
 # Global variable to store logs
 current_logs = []
@@ -262,6 +303,11 @@ def get_live_tools():
         }
     ]
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon"""
+    return send_from_directory(app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route('/')
 @login_required
 def index():
@@ -401,12 +447,57 @@ def process_audio():
         # Add language and logs to result
         result['language'] = language
         result['logs'] = log_capture.logs
+        
+        # For audio, the transcription is not directly available (Gemini processes audio directly)
+        # But we can note that it was processed from audio
+        result['transcription'] = result.get('transcription', f"[Audio processed from: {filename}]")
+        result['input_type'] = 'audio'
+        
+        # Generate run_id and save to database
+        run_id = run_logs_db.generate_run_id()
+        result['run_id'] = run_id
+        
+        # Extract performance metrics
+        perf = result.get('performance_metrics', {})
+        timings = perf.get('timings', {})
+        tokens = perf.get('token_counts', {})
+        costs = perf.get('costs', {})
+        
+        # Save run log
+        run_logs_db.save_run_log(
+            run_id=run_id,
+            input_type='audio',
+            language=language,
+            input_filename=filename,
+            input_size_bytes=os.path.getsize(filepath) if os.path.exists(filepath) else None,
+            transcription=result.get('transcription'),
+            client_info=result.get('client_info'),
+            recommendations=result.get('recommendations'),
+            processing_time_seconds=timings.get('e2e_total'),
+            tokens_used=tokens.get('total_tokens'),
+            api_cost=costs.get('total_cost'),
+            api_calls=perf.get('api_calls'),
+            timing_breakdown=timings,
+            status='completed',
+            crm_pushed=result.get('crm_pushed', False),
+            consultation_id=result.get('consultation_id'),
+            username=session.get('username')
+        )
 
         logger.info("Processing completed successfully")
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error in processing: {e}", exc_info=True)
+        # Save failed run
+        run_logs_db.save_run_log(
+            run_id=run_logs_db.generate_run_id(),
+            input_type='audio',
+            language=request.form.get('language', 'english'),
+            status='failed',
+            error_message=str(e),
+            username=session.get('username')
+        )
         return jsonify({'error': str(e), 'logs': log_capture.logs}), 500
     finally:
         sys.stdout = old_stdout
@@ -456,12 +547,54 @@ def process_text():
         # Add language and logs to result
         result['language'] = language
         result['logs'] = log_capture.logs
+        
+        # For text input, the input IS the transcription
+        result['transcription'] = text
+        result['input_type'] = 'text'
+        
+        # Generate run_id and save to database
+        run_id = run_logs_db.generate_run_id()
+        result['run_id'] = run_id
+        
+        # Extract performance metrics
+        perf = result.get('performance_metrics', {})
+        timings = perf.get('timings', {})
+        tokens = perf.get('token_counts', {})
+        costs = perf.get('costs', {})
+        
+        # Save run log
+        run_logs_db.save_run_log(
+            run_id=run_id,
+            input_type='text',
+            language=language,
+            transcription=text,  # For text input, the input IS the transcription
+            client_info=result.get('client_info'),
+            recommendations=result.get('recommendations'),
+            processing_time_seconds=timings.get('e2e_total'),
+            tokens_used=tokens.get('total_tokens'),
+            api_cost=costs.get('total_cost'),
+            api_calls=perf.get('api_calls'),
+            timing_breakdown=timings,
+            status='completed',
+            crm_pushed=result.get('crm_pushed', False),
+            consultation_id=result.get('consultation_id'),
+            username=session.get('username')
+        )
 
         logger.info("Processing completed successfully")
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error in processing: {e}", exc_info=True)
+        # Save failed run
+        run_logs_db.save_run_log(
+            run_id=run_logs_db.generate_run_id(),
+            input_type='text',
+            language=data.get('language', 'english') if 'data' in locals() else 'english',
+            status='failed',
+            error_message=str(e),
+            username=session.get('username')
+        )
         return jsonify({'error': str(e), 'logs': log_capture.logs}), 500
     finally:
         sys.stdout = old_stdout
@@ -1028,6 +1161,80 @@ def cleanup_sessions():
 
 
 # ========================================
+# Run Logs API Routes
+# ========================================
+
+@app.route('/api/run-logs', methods=['GET'])
+@login_required
+def get_run_logs():
+    """Get recent run logs"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        runs = run_logs_db.get_recent_runs(limit=limit, username=session.get('username'))
+        return jsonify({
+            'runs': runs,
+            'total': len(runs)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/run-logs/<run_id>', methods=['GET'])
+@login_required
+def get_run_log(run_id):
+    """Get specific run log with full details including transcription"""
+    try:
+        run = run_logs_db.get_run_log(run_id)
+        if not run:
+            return jsonify({'error': 'Run not found'}), 404
+        return jsonify(run)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/run-logs/stats', methods=['GET'])
+@login_required
+def get_run_stats():
+    """Get performance statistics for charts"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        stats = run_logs_db.get_performance_stats(days=days)
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/run-logs/history/processing-time', methods=['GET'])
+@login_required
+def get_processing_time_history():
+    """Get processing time history for mini-chart"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        times = run_logs_db.get_processing_time_history(limit=limit)
+        return jsonify({'data': times})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/run-logs/history/tokens', methods=['GET'])
+@login_required
+def get_token_history():
+    """Get token usage history for mini-chart"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        tokens = run_logs_db.get_token_history(limit=limit)
+        return jsonify({'data': tokens})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/run-logs/history/cost', methods=['GET'])
+@login_required
+def get_cost_history():
+    """Get API cost history for mini-chart"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        costs = run_logs_db.get_cost_history(limit=limit)
+        return jsonify({'data': costs})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ========================================
 # Admin Panel Routes
 # ========================================
 
@@ -1406,6 +1613,9 @@ def handle_leave_session(data):
         emit('left', {'session_id': session_id})
 
 
+# Store event loops per session for async operations
+voice_loops = {}
+
 @socketio.on('start_voice')
 def handle_start_voice(data):
     """Initialize Gemini voice agent for a session"""
@@ -1416,6 +1626,11 @@ def handle_start_voice(data):
     if not voice_session:
         emit('error', {'message': 'Session not found'})
         return
+    
+    # Get CRM setting from admin config (not from client!)
+    voice_settings = admin_config.get_voice_settings()
+    push_to_crm = voice_settings.get('push_to_crm', True)
+    voice_session.client_info['push_to_crm'] = push_to_crm
     
     # Get API key
     api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
@@ -1428,8 +1643,8 @@ def handle_start_voice(data):
         agent = GeminiVoiceAgent(api_key, session_id, language)
         voice_agents[session_id] = agent
         
-        # Set up callbacks
-        def on_message(role, text):
+        # Set up callbacks - these will be called from the async context
+        async def on_message(role, text):
             socketio.emit('voice_message', {
                 'role': role,
                 'text': text,
@@ -1443,56 +1658,220 @@ def handle_start_voice(data):
                 'timestamp': datetime.now().isoformat()
             })
         
-        def on_audio(audio_data):
+        async def on_audio(audio_data):
             # Send audio as base64
             socketio.emit('voice_audio', {
                 'audio': base64.b64encode(audio_data).decode('utf-8'),
                 'sample_rate': SAMPLE_RATE
             }, room=session_id)
         
-        def on_status(status, message):
+        async def on_status(status, message):
             voice_session.status = status
             socketio.emit('voice_status', {
                 'status': status,
                 'message': message
             }, room=session_id)
         
-        # Connect to Gemini in a background thread
+        async def on_search_ready(params):
+            """Called when agent has collected enough info to search"""
+            logger.info(f"🔍 Search triggered with params: {params}")
+            
+            # Notify frontend that search is in progress
+            socketio.emit('voice_status', {
+                'status': 'searching',
+                'message': 'Running AI recommendations...',
+                'params': params
+            }, room=session_id)
+            
+            voice_session.status = 'processing'
+            voice_session.client_info = params
+            
+            # Run the actual recommendation pipeline in a thread
+            def run_recommendations():
+                start_time = datetime.now()
+                run_log_id = None
+                
+                try:
+                    from ranking_engine import RankingEngine
+                    
+                    # Create client requirements from voice params
+                    client_requirements = {
+                        'care_level': params.get('care_level', ''),
+                        'budget_min': extract_budget_min(params.get('budget', '')),
+                        'budget_max': extract_budget_max(params.get('budget', '')),
+                        'location': params.get('location', ''),
+                        'timeline': params.get('timeline', ''),
+                        'special_requirements': params.get('special_requirements', ''),
+                        'source': 'voice_agent'
+                    }
+                    
+                    logger.info(f"Running ranking with requirements: {client_requirements}")
+                    
+                    # Build transcription from conversation history
+                    transcription = "\n".join([
+                        f"{msg.get('role', 'unknown').upper()}: {msg.get('text', '')}"
+                        for msg in voice_session.conversation_history
+                    ])
+                    
+                    # Initialize ranking engine and run
+                    engine = RankingEngine()
+                    engine.analyze_client_needs(client_requirements)
+                    engine.run_comprehensive_ranking()
+                    
+                    # Get top recommendations
+                    results = engine.export_to_crm_format()
+                    recommendations = results.get('top_recommendations', [])[:5]
+                    
+                    processing_time = (datetime.now() - start_time).total_seconds()
+                    logger.info(f"Got {len(recommendations)} recommendations in {processing_time:.1f}s")
+                    
+                    # Store in session
+                    voice_session.recommendations = recommendations
+                    voice_session.status = 'results'
+                    
+                    # ============ LOG TO DATABASE ============
+                    try:
+                        run_log_id = run_logs_db.generate_run_id()
+                        run_logs_db.save_run_log(
+                            run_id=run_log_id,
+                            input_type='voice_agent',
+                            input_filename=f'voice_session:{session_id}',
+                            transcription=transcription,
+                            client_info=client_requirements,
+                            recommendations=recommendations,
+                            processing_time_seconds=processing_time,
+                            crm_pushed=False,  # Will update if CRM push succeeds
+                            status='completed',
+                            username=session.get('username', 'voice_client')
+                        )
+                        logger.info(f"Saved voice agent run log with ID: {run_log_id}")
+                    except Exception as log_err:
+                        logger.error(f"Failed to save run log: {log_err}")
+                        run_log_id = None
+                    
+                    # ============ PUSH TO CRM (if enabled) ============
+                    # Check if CRM push is enabled for this session
+                    push_to_crm_enabled = voice_session.client_info.get('push_to_crm', True)
+                    crm_result = None
+                    
+                    if push_to_crm_enabled and recommendations:
+                        try:
+                            from google_sheets_integration import push_to_crm
+                            crm_data = {
+                                'client_requirements': client_requirements,
+                                'recommendations': recommendations,
+                                'transcription': transcription[:500],  # First 500 chars
+                                'source': 'voice_agent',
+                                'session_id': session_id,
+                                'timestamp': datetime.now().isoformat()
+                            }
+                            crm_result = push_to_crm(crm_data)
+                            logger.info(f"Pushed voice results to CRM: {crm_result}")
+                            
+                            # Update run log with CRM status
+                            if run_log_id:
+                                run_logs_db.update_crm_status(run_log_id, True)
+                        except Exception as crm_err:
+                            logger.error(f"CRM push failed: {crm_err}")
+                    
+                    # Send recommendations to the voice agent to speak
+                    loop = voice_loops.get(session_id)
+                    if loop and loop.is_running():
+                        future = asyncio.run_coroutine_threadsafe(
+                            agent.send_recommendations(recommendations), 
+                            loop
+                        )
+                        future.result(timeout=30)
+                    
+                    # Also notify frontend
+                    socketio.emit('voice_recommendations', {
+                        'session_id': session_id,
+                        'recommendations': recommendations,
+                        'client_info': client_requirements,
+                        'processing_time': processing_time,
+                        'run_log_id': run_log_id,
+                        'crm_pushed': crm_result is not None
+                    }, room=session_id)
+                    
+                except Exception as e:
+                    logger.error(f"Error running recommendations: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    
+                    # Log the error
+                    if run_log_id is None:
+                        try:
+                            error_run_id = run_logs_db.generate_run_id()
+                            run_logs_db.save_run_log(
+                                run_id=error_run_id,
+                                input_type='voice_agent',
+                                input_filename=f'voice_session:{session_id}',
+                                transcription=str(voice_session.conversation_history),
+                                client_info=params,
+                                recommendations=[],
+                                processing_time_seconds=(datetime.now() - start_time).total_seconds(),
+                                status='failed',
+                                error_message=str(e)
+                            )
+                        except:
+                            pass
+                    
+                    # Tell agent to apologize
+                    loop = voice_loops.get(session_id)
+                    if loop and loop.is_running():
+                        error_msg = "RESULTS: I apologize, but I encountered an issue searching our database. Let me try again or connect you with a human consultant."
+                        asyncio.run_coroutine_threadsafe(
+                            agent.session.send(input=error_msg, end_of_turn=True),
+                            loop
+                        )
+            
+            # Run in background thread to not block the voice loop
+            thread = threading.Thread(target=run_recommendations, name=f"rec-{session_id}")
+            thread.daemon = True
+            thread.start()
+        
+        agent.on_message_callback = on_message
+        agent.on_audio_callback = on_audio
+        agent.on_status_callback = on_status
+        agent.on_search_ready_callback = on_search_ready
+        
+        # Wrap on_status to emit voice_ready when connected
+        original_on_status = on_status
+        async def on_status_with_ready(status, message):
+            await original_on_status(status, message)
+            if status == 'connected':
+                socketio.emit('voice_ready', {
+                    'session_id': session_id,
+                    'message': 'Voice agent ready'
+                }, room=session_id)
+                voice_session.status = 'collecting'
+        
+        agent.on_status_callback = on_status_with_ready
+        
+        # Connect to Gemini in a background thread with its own event loop
         def connect_and_start():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            voice_loops[session_id] = loop
             
-            async def run():
-                agent.on_message_callback = lambda r, t: asyncio.create_task(
-                    asyncio.to_thread(on_message, r, t)
-                )
-                agent.on_audio_callback = lambda a: asyncio.create_task(
-                    asyncio.to_thread(on_audio, a)
-                )
-                agent.on_status_callback = lambda s, m: asyncio.create_task(
-                    asyncio.to_thread(on_status, s, m)
-                )
-                
-                connected = await agent.connect()
-                if connected:
-                    socketio.emit('voice_ready', {
-                        'session_id': session_id,
-                        'message': 'Voice agent ready'
-                    }, room=session_id)
-                    
-                    voice_session.status = 'collecting'
-                    await agent.start_conversation()
-                    await agent.receive_loop()
-                else:
-                    socketio.emit('error', {
-                        'message': 'Failed to connect to Gemini'
-                    }, room=session_id)
-            
-            loop.run_until_complete(run())
-            loop.close()
+            try:
+                # Run the agent's main loop (handles connect, receive, everything)
+                loop.run_until_complete(agent.run())
+            except Exception as e:
+                logger.error(f"Voice agent error: {type(e).__name__}: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                socketio.emit('error', {
+                    'message': f'Voice agent error: {str(e)}'
+                }, room=session_id)
+            finally:
+                logger.info(f"Voice agent loop ended for session {session_id}")
+                loop.close()
+                if session_id in voice_loops:
+                    del voice_loops[session_id]
         
         # Start in background thread
-        thread = threading.Thread(target=connect_and_start)
+        thread = threading.Thread(target=connect_and_start, name=f"voice-{session_id}")
         thread.daemon = True
         thread.start()
         
@@ -1503,6 +1882,8 @@ def handle_start_voice(data):
         
     except Exception as e:
         logger.error(f"Error starting voice agent: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         emit('error', {'message': str(e)})
 
 
@@ -1514,19 +1895,37 @@ def handle_voice_input(data):
     text_input = data.get('text')
     
     if session_id not in voice_agents:
-        emit('error', {'message': 'Voice agent not initialized'})
+        logger.error(f"Voice agent not found for session {session_id}")
+        emit('error', {'message': 'Voice agent not initialized. Please refresh the page.'})
         return
     
     agent = voice_agents[session_id]
     
+    if not agent.is_connected:
+        logger.error(f"Voice agent not connected for session {session_id}")
+        emit('error', {'message': 'Voice agent disconnected. Please refresh the page.'})
+        return
+    
     try:
+        # Get the event loop for this session
+        loop = voice_loops.get(session_id)
+        
         if audio_data:
-            # Decode and send audio
+            # Decode and send audio through the session's event loop
             audio_bytes = base64.b64decode(audio_data)
-            asyncio.run(agent.send_audio(audio_bytes))
+            
+            if loop and loop.is_running():
+                # Schedule the coroutine in the session's event loop
+                asyncio.run_coroutine_threadsafe(agent.send_audio(audio_bytes), loop)
+            else:
+                logger.warning(f"Event loop not available for session {session_id}")
+                
         elif text_input:
             # Send text input
-            asyncio.run(agent.send_text(text_input))
+            logger.info(f"Sending text to Gemini: {text_input[:100]}...")
+            
+            if loop and loop.is_running():
+                asyncio.run_coroutine_threadsafe(agent.send_text(text_input), loop)
             
             # Also emit to room for display
             voice_session = get_session(session_id)
@@ -1544,8 +1943,10 @@ def handle_voice_input(data):
             }, room=session_id)
             
     except Exception as e:
-        logger.error(f"Error processing voice input: {e}")
-        emit('error', {'message': str(e)})
+        logger.error(f"Error processing voice input: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        emit('error', {'message': f'Error: {str(e)}'})
 
 
 @socketio.on('stop_voice')
@@ -1555,14 +1956,34 @@ def handle_stop_voice(data):
     
     if session_id in voice_agents:
         agent = voice_agents[session_id]
-        asyncio.run(agent.disconnect())
+        loop = voice_loops.get(session_id)
+        
+        # Disconnect using the session's event loop
+        if loop and loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(agent.disconnect(), loop)
+            try:
+                future.result(timeout=5)  # Wait max 5 seconds
+            except Exception as e:
+                logger.error(f"Error disconnecting voice agent: {e}")
+        else:
+            # Fallback - create new loop just to disconnect
+            try:
+                asyncio.run(agent.disconnect())
+            except:
+                pass
+        
         del voice_agents[session_id]
+    
+    # Clean up event loop reference
+    if session_id in voice_loops:
+        del voice_loops[session_id]
     
     voice_session = get_session(session_id)
     if voice_session:
         voice_session.status = 'ended'
     
     emit('voice_stopped', {'session_id': session_id}, room=session_id)
+    logger.info(f"Voice session {session_id} stopped")
 
 
 if __name__ == '__main__':

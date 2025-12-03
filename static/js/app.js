@@ -156,55 +156,76 @@ function switchTab(tabName) {
 function initializeAudioUpload() {
     const uploadArea = document.getElementById('upload-area');
     const audioFile = document.getElementById('audio-file');
-    const processBtn = document.getElementById('process-audio-btn');
+    const selectBtn = uploadArea?.querySelector('.select-file-btn');
     
-    // Prevent event bubbling issues
-    let isProcessingClick = false;
-
-    // Click to upload - with debounce to prevent double trigger
-    uploadArea.addEventListener('click', (e) => {
-        // Prevent if clicking on the file input itself
-        if (e.target === audioFile || isProcessingClick) {
-            return;
+    if (!uploadArea || !audioFile) {
+        console.warn('Upload area or audio file input not found');
+        return;
+    }
+    
+    // Remove any existing event listeners by cloning
+    const newAudioFile = audioFile.cloneNode(true);
+    audioFile.parentNode.replaceChild(newAudioFile, audioFile);
+    
+    // Get reference to the new element
+    const audioInput = document.getElementById('audio-file');
+    
+    // Single file change handler
+    audioInput.addEventListener('change', function(e) {
+        e.stopPropagation();
+        if (this.files && this.files.length > 0) {
+            console.log('File selected:', this.files[0].name);
+            handleFileSelect(this.files[0]);
         }
-        isProcessingClick = true;
-        audioFile.click();
-        // Reset after a short delay
-        setTimeout(() => {
-            isProcessingClick = false;
-        }, 500);
     });
 
-    // File selection - clear input first to allow re-selection of same file
-    audioFile.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent bubbling to uploadArea
-    });
-    
-    audioFile.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            handleFileSelect(e.target.files[0]);
-            // Reset input to allow selecting the same file again
-            // But don't reset immediately to prevent issues
+    // Use a label-based approach for the button to avoid double-click issues
+    if (selectBtn) {
+        // Convert button to trigger input directly
+        selectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            audioInput.value = ''; // Clear previous selection
+            audioInput.click();
+        });
+    }
+
+    // Click on upload area (excluding button and input)
+    uploadArea.addEventListener('click', function(e) {
+        // Only trigger if clicking on the area itself, not children that handle their own clicks
+        if (e.target === uploadArea || 
+            e.target.closest('.upload-icon') || 
+            e.target.tagName === 'H3' || 
+            e.target.tagName === 'P') {
+            e.preventDefault();
+            audioInput.value = ''; // Clear previous selection
+            audioInput.click();
         }
     });
 
     // Drag and drop
-    uploadArea.addEventListener('dragover', (e) => {
+    uploadArea.addEventListener('dragover', function(e) {
         e.preventDefault();
-        uploadArea.classList.add('dragover');
+        e.stopPropagation();
+        this.classList.add('dragover');
     });
 
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('dragover');
     });
 
-    uploadArea.addEventListener('drop', (e) => {
+    uploadArea.addEventListener('drop', function(e) {
         e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
+        e.stopPropagation();
+        this.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             handleFileSelect(e.dataTransfer.files[0]);
         }
     });
+    
+    console.log('Audio upload initialized');
 }
 
 function handleFileSelect(file) {
@@ -253,10 +274,15 @@ function initializeConsultationForms() {
 }
 
 async function processAudioConsultation() {
-    if (!selectedFile) return;
+    console.log('processAudioConsultation started');
+    if (!selectedFile) {
+        console.log('No file selected');
+        return;
+    }
 
     const pushToCRM = document.getElementById('push-to-crm-audio').checked;
     const language = document.getElementById('language-select-consultation').value;
+    console.log('Processing with language:', language, 'pushToCRM:', pushToCRM);
 
     const formData = new FormData();
     formData.append('audio', selectedFile);
@@ -264,14 +290,18 @@ async function processAudioConsultation() {
     formData.append('language', language);
 
     showLoading('Processing audio consultation...');
+    console.log('Loading overlay shown');
 
     try {
+        console.log('Sending API request...');
         const response = await fetch('/api/process-audio', {
             method: 'POST',
             body: formData
         });
+        console.log('API response received, status:', response.status);
 
         const result = await response.json();
+        console.log('API result parsed:', result);
 
         if (!response.ok) {
             // Show logs even on error
@@ -283,16 +313,22 @@ async function processAudioConsultation() {
 
         // Display logs before showing results
         if (result.logs) {
+            console.log('Updating progress logs');
             updateProgressLogs(result.logs);
         }
 
         // Brief delay to let user see the final logs
+        console.log('Waiting 1s before displaying results...');
         await new Promise(resolve => setTimeout(resolve, 1000));
 
+        console.log('Calling displayResults...');
         displayResults(result);
+        console.log('displayResults completed');
     } catch (error) {
+        console.error('Error in processAudioConsultation:', error);
         showError(`Error: ${error.message}`);
     } finally {
+        console.log('Hiding loading overlay');
         hideLoading();
     }
 }
@@ -354,13 +390,30 @@ async function processTextConsultation() {
 // ========================================
 
 function displayResults(result) {
-    const resultsSection = document.getElementById('results-section');
-    const clientInfo = document.getElementById('client-info');
-    const recommendations = document.getElementById('recommendations');
-    const metricsInfo = document.getElementById('metrics-info');
+    console.log('displayResults called with:', result);
+    
+    try {
+        const resultsSection = document.getElementById('results-section');
+        const analysisContent = document.getElementById('analysis-content');
+        const clientInfo = document.getElementById('client-info');
+        const recommendations = document.getElementById('recommendations');
+        const metricsInfo = document.getElementById('metrics-info');
+        
+        console.log('DOM elements found:', {
+            resultsSection: !!resultsSection,
+            analysisContent: !!analysisContent,
+            clientInfo: !!clientInfo,
+            recommendations: !!recommendations,
+            metricsInfo: !!metricsInfo
+        });
 
-    // Show results section with animation
-    resultsSection.style.display = 'block';
+        if (!resultsSection) {
+            console.error('results-section element not found!');
+            return;
+        }
+
+        // Show results section with animation
+        resultsSection.style.display = 'block';
     resultsSection.style.opacity = '0';
     resultsSection.style.transform = 'translateY(20px)';
     
@@ -376,10 +429,74 @@ function displayResults(result) {
         }, 100);
     });
 
-    // Display client info
+    // Store run_id for fetching transcription later
+    if (result.run_id) {
+        resultsSection.dataset.runId = result.run_id;
+    }
+    
+    // Display Analysis Details - Transcription & Extracted Info (Collapsible)
     const client = result.client_info || {};
+    const specialNeeds = client.special_needs || {};
+    
+    // Build extracted info items
+    const extractedItems = [
+        { label: 'Care Level', value: client.care_level },
+        { label: 'Budget', value: client.budget ? `$${Number(client.budget).toLocaleString()}` : null },
+        { label: 'Timeline', value: client.timeline },
+        { label: 'Location/ZIP', value: client.location_preference },
+        { label: 'Client Name', value: client.client_name },
+        { label: 'Enhanced Services', value: client.enhanced ? 'Yes' : 'No' },
+        { label: 'Enriched Housing', value: client.enriched ? 'Yes' : 'No' },
+        { label: 'Pets', value: specialNeeds.pets },
+        { label: 'Couples', value: specialNeeds.couples },
+        { label: 'Apartment Preference', value: specialNeeds.apartment_type_preference },
+    ].filter(item => item.value && item.value !== 'N/A' && item.value !== 'Unknown');
+    
+    // Get transcription if available (for text input, it's the input itself)
+    const transcription = result.transcription || result.logs?.find(l => l.includes('Transcription:'))?.split('Transcription:')[1]?.trim() || null;
+    
+    if (analysisContent) {
+        analysisContent.innerHTML = `
+            ${transcription ? `
+                <div class="analysis-section">
+                    <div class="analysis-section-title">🎙️ Transcription / Input</div>
+                    <div class="transcription-box">${escapeHtml(transcription)}</div>
+                </div>
+            ` : ''}
+            
+            <div class="analysis-section">
+                <div class="analysis-section-title">🔍 AI-Extracted Information</div>
+                <div class="extracted-info-grid">
+                    ${extractedItems.map(item => `
+                        <div class="extracted-item">
+                            <span class="extracted-label">${item.label}</span>
+                            <span class="extracted-value">${item.value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ${client.notes ? `
+                    <div style="margin-top: var(--spacing-md);">
+                        <div class="analysis-section-title">📝 Additional Notes</div>
+                        <div class="transcription-box">${escapeHtml(client.notes)}</div>
+                    </div>
+                ` : ''}
+            </div>
+            
+            ${result.run_id ? `
+                <div style="margin-top: var(--spacing-md); text-align: center;">
+                    <button class="btn btn-outline btn-sm" onclick="viewTranscription('${result.run_id}')">
+                        📋 View Full Run Details
+                    </button>
+                </div>
+            ` : ''}
+        `;
+    }
+    
+    // Display client info - Compact summary card
     clientInfo.innerHTML = `
-        <h3>Client Information</h3>
+        <div class="client-info-header">
+            <h3>Client Requirements</h3>
+        </div>
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Care Level</span>
@@ -399,44 +516,67 @@ function displayResults(result) {
             </div>
         </div>
         ${result.crm_pushed ? `
-            <div style="margin-top: 1rem; padding: 1rem; background: #D1FAE5; border-radius: 0.5rem; color: #065F46;">
-                ✓ Results pushed to Google Sheets CRM (Consultation #${result.consultation_id})
+            <div class="crm-pushed-badge">
+                <span>✓</span> Pushed to CRM (Consultation #${result.consultation_id})
             </div>
         ` : ''}
     `;
 
-    // Display recommendations with staggered animation
+    // Display recommendations - Vertical hierarchy with full community data
     const recs = result.recommendations || [];
     recommendations.innerHTML = recs.map((rec, index) => {
         const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
-        const animationDelay = index * 100;
+        const km = rec.key_metrics || {};
+        const cd = rec.community_data || {}; // Full community data from database
+        
+        // Format currency helper
+        const fmt = (val) => val != null && !isNaN(val) ? `$${Number(val).toLocaleString()}` : 'N/A';
+        const fmtNum = (val, suffix = '') => val != null && !isNaN(val) ? `${Number(val).toLocaleString()}${suffix}` : 'N/A';
 
         return `
-            <div class="recommendation-card" style="animation-delay: ${animationDelay}ms;" role="article" aria-label="Recommendation ${rec.final_rank}: Community ${rec.community_id}">
-                <div class="rank-badge ${rankClass}" aria-label="Rank ${rec.final_rank}">${rec.final_rank}</div>
-                <div class="recommendation-header">
-                    <h3>Community ${rec.community_id}</h3>
-                    <div class="recommendation-score">
-                        Combined Score: ${rec.combined_rank_score.toFixed(2)} (lower is better)
+            <div class="recommendation-card expanded" role="article" aria-label="Recommendation ${rec.final_rank}: Community ${rec.community_id}">
+                <div class="rec-header-row">
+                    <div class="rank-badge ${rankClass}">${rec.final_rank}</div>
+                    <div class="rec-title">
+                        <h3>Community ${rec.community_id}</h3>
+                        <span class="recommendation-score">Score: ${rec.combined_rank_score.toFixed(0)}</span>
                     </div>
+                    <button class="btn btn-sm btn-outline" onclick="toggleCommunityDetails(this)">
+                        📋 Details
+                    </button>
                 </div>
-                <div class="metrics-row">
-                    <div class="metric">
-                        <span class="metric-label">Monthly Fee</span>
-                        <span class="metric-value">$${((rec.key_metrics && rec.key_metrics.monthly_fee) || 0).toLocaleString()}</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Distance</span>
-                        <span class="metric-value">${((rec.key_metrics && rec.key_metrics.distance_miles) || 0).toFixed(2)} mi</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Availability</span>
-                        <span class="metric-value">${(rec.key_metrics && rec.key_metrics.est_waitlist) || 'Unknown'}</span>
-                    </div>
+                
+                <div class="rec-reasoning">
+                    ${(rec.explanations && rec.explanations.holistic_reason) || 'No reasoning available'}
                 </div>
-                <div class="reasoning">
-                    <div class="reasoning-label">AI Reasoning</div>
-                    <div class="reasoning-text">${(rec.explanations && rec.explanations.holistic_reason) || 'No reasoning available'}</div>
+                
+                <div class="community-data-grid">
+                    <div class="data-section">
+                        <h4>💰 Pricing</h4>
+                        <div class="data-row"><span>Monthly Fee</span><strong>${fmt(cd['Monthly Fee'])}</strong></div>
+                        <div class="data-row"><span>Deposit</span><strong>${fmt(cd['Deposit'])}</strong></div>
+                        <div class="data-row"><span>Move-In Fee</span><strong>${fmt(cd['Move-In Fee'])}</strong></div>
+                        <div class="data-row"><span>Community Fee</span><strong>${fmt(cd['Community Fee - One Time'])}</strong></div>
+                        <div class="data-row"><span>2nd Person Fee</span><strong>${fmt(cd['2nd Person Fee'])}</strong></div>
+                        <div class="data-row"><span>Pet Fee</span><strong>${fmt(cd['Pet Fee'])}</strong></div>
+                    </div>
+                    
+                    <div class="data-section">
+                        <h4>🏠 Details</h4>
+                        <div class="data-row"><span>Care Type</span><strong>${cd['Type of Service'] || 'N/A'}</strong></div>
+                        <div class="data-row"><span>Apartment</span><strong>${cd['Apartment Type'] || 'N/A'}</strong></div>
+                        <div class="data-row"><span>ZIP Code</span><strong>${cd['ZIP'] || 'N/A'}</strong></div>
+                        <div class="data-row"><span>Distance</span><strong>${fmtNum(km.distance_miles, ' mi')}</strong></div>
+                        <div class="data-row"><span>Enhanced</span><strong>${cd['Enhanced'] || 'N/A'}</strong></div>
+                        <div class="data-row"><span>Enriched</span><strong>${cd['Enriched'] || 'N/A'}</strong></div>
+                    </div>
+                    
+                    <div class="data-section">
+                        <h4>📅 Availability</h4>
+                        <div class="data-row"><span>Waitlist</span><strong>${cd['Est. Waitlist Length'] || km.est_waitlist || 'N/A'}</strong></div>
+                        <div class="data-row"><span>Contract Rate</span><strong>${cd['Contract (w rate)?'] || 'N/A'}</strong></div>
+                        <div class="data-row"><span>Works w/ Placement</span><strong>${cd['Work with Placement?'] || 'N/A'}</strong></div>
+                    </div>
                 </div>
             </div>
         `;
@@ -456,69 +596,225 @@ function displayResults(result) {
         });
     }, 50);
 
-    // Display metrics - FIX: Use performance_metrics not metrics
+    // Display performance metrics with real historical charts
     const perfMetrics = result.performance_metrics || {};
     const timings = perfMetrics.timings || {};
     const tokenCounts = perfMetrics.token_counts || {};
     const costs = perfMetrics.costs || {};
-
-    // Generate trend data for mini-charts (simulated - replace with real historical data)
-    const processingTimeTrend = MiniChart.generateTrendData(8, 'down');
-    const tokenTrend = MiniChart.generateTrendData(8, 'up');
-    const costTrend = MiniChart.generateTrendData(8, 'up');
     
     metricsInfo.innerHTML = `
-        <h3>Performance Metrics</h3>
+        <h3>Performance Stats</h3>
         <div class="metrics-grid">
             <div class="metric-item">
-                <span class="metric-item-label">Processing Time</span>
-                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                    <span class="metric-item-value">${(timings.e2e_total || 0).toFixed(1)}s</span>
-                </div>
-                <div class="mini-chart" aria-label="Processing time trend"></div>
+                <span class="metric-item-label">⏱️ Processing Time</span>
+                <span class="metric-item-value">${(timings.e2e_total || 0).toFixed(1)}s</span>
+                <div class="mini-chart" id="chart-processing-time"></div>
             </div>
             <div class="metric-item">
-                <span class="metric-item-label">Total Tokens</span>
-                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                    <span class="metric-item-value">${(tokenCounts.total_tokens || 0).toLocaleString()}</span>
-                </div>
-                <div class="mini-chart" aria-label="Token usage trend"></div>
+                <span class="metric-item-label">🔤 Tokens Used</span>
+                <span class="metric-item-value">${(tokenCounts.total_tokens || 0).toLocaleString()}</span>
+                <div class="mini-chart" id="chart-tokens"></div>
             </div>
             <div class="metric-item">
-                <span class="metric-item-label">Total Cost</span>
-                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
-                    <span class="metric-item-value">$${(costs.total_cost || 0).toFixed(6)}</span>
-                </div>
-                <div class="mini-chart" aria-label="Cost trend"></div>
-            </div>
-            <div class="metric-item">
-                <span class="metric-item-label">Recommendations</span>
-                <span class="metric-item-value">${recs.length}</span>
+                <span class="metric-item-label">💵 API Cost</span>
+                <span class="metric-item-value">$${(costs.total_cost || 0).toFixed(4)}</span>
+                <div class="mini-chart" id="chart-cost"></div>
             </div>
         </div>
     `;
     
-    // Add mini-charts after rendering (lazy load for performance)
-    requestAnimationFrame(() => {
-        setTimeout(() => {
-            const chartContainers = metricsInfo.querySelectorAll('.mini-chart');
-            if (chartContainers.length >= 3) {
-                try {
-                    chartContainers[0].appendChild(MiniChart.create(processingTimeTrend, { color: 'var(--primary)', showFill: true }));
-                    chartContainers[1].appendChild(MiniChart.create(tokenTrend, { color: 'var(--info)', showFill: true }));
-                    chartContainers[2].appendChild(MiniChart.create(costTrend, { color: 'var(--warning)', showFill: true }));
-                } catch (error) {
-                    console.warn('Mini-chart rendering failed:', error);
-                }
-            }
-        }, 200);
-    });
+    // Fetch and render real historical charts
+    loadHistoricalCharts();
+    
+    console.log('displayResults completed successfully');
+    } catch (err) {
+        console.error('Error in displayResults:', err);
+        throw err;
+    }
 }
 
 function clearResults() {
     document.getElementById('results-section').style.display = 'none';
     document.getElementById('text-input').value = '';
     clearAudioFile();
+}
+
+// ========================================
+// Transcription Viewer
+// ========================================
+
+async function viewTranscription(runId) {
+    try {
+        showLoading('Loading transcription...');
+        
+        const response = await fetch(`/api/run-logs/${runId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch transcription');
+        }
+        
+        const data = await response.json();
+        
+        // Create modal content
+        const modalContent = `
+            <div class="transcription-modal">
+                <div class="transcription-header">
+                    <h3>📝 Transcription & Extracted Info</h3>
+                    <span class="transcription-meta">Run ID: ${runId}</span>
+                </div>
+                
+                <div class="transcription-section">
+                    <h4>🎤 Full Transcription</h4>
+                    <div class="transcription-text">
+                        ${data.transcription || 'No transcription available'}
+                    </div>
+                </div>
+                
+                <div class="transcription-section">
+                    <h4>📋 Extracted Client Information</h4>
+                    <div class="extracted-info">
+                        ${data.client_info ? `
+                            <div class="info-row"><strong>Care Level:</strong> ${data.client_info.care_level || 'N/A'}</div>
+                            <div class="info-row"><strong>Budget:</strong> $${(data.client_info.budget || 0).toLocaleString()}</div>
+                            <div class="info-row"><strong>Timeline:</strong> ${data.client_info.timeline || 'N/A'}</div>
+                            <div class="info-row"><strong>Location:</strong> ${data.client_info.location_preference || 'N/A'}</div>
+                            ${data.client_info.special_requirements ? `
+                                <div class="info-row"><strong>Special Requirements:</strong> ${data.client_info.special_requirements}</div>
+                            ` : ''}
+                        ` : 'No client info extracted'}
+                    </div>
+                </div>
+                
+                <div class="transcription-section">
+                    <h4>📊 Run Metadata</h4>
+                    <div class="metadata-grid">
+                        <div><strong>Input Type:</strong> ${data.input_type}</div>
+                        <div><strong>Language:</strong> ${data.language}</div>
+                        <div><strong>Processing Time:</strong> ${data.processing_time_seconds?.toFixed(1) || 'N/A'}s</div>
+                        <div><strong>Tokens Used:</strong> ${data.tokens_used?.toLocaleString() || 'N/A'}</div>
+                        <div><strong>API Cost:</strong> $${data.api_cost?.toFixed(4) || 'N/A'}</div>
+                        <div><strong>Created:</strong> ${new Date(data.created_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Show in a modal
+        showTranscriptionModal(modalContent);
+        
+    } catch (error) {
+        showError(`Error loading transcription: ${error.message}`);
+    } finally {
+        hideLoading();
+    }
+}
+
+function showTranscriptionModal(content) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('transcription-modal');
+    if (existingModal) existingModal.remove();
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'transcription-modal';
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeTranscriptionModal()"></div>
+        <div class="modal-content transcription-modal-content">
+            <button class="modal-close" onclick="closeTranscriptionModal()">×</button>
+            ${content}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTranscriptionModal() {
+    const modal = document.getElementById('transcription-modal');
+    if (modal) {
+        modal.remove();
+        document.body.style.overflow = '';
+    }
+}
+
+// Expose globally
+window.viewTranscription = viewTranscription;
+window.closeTranscriptionModal = closeTranscriptionModal;
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Toggle analysis details section
+function toggleAnalysisDetails() {
+    const analysisCard = document.getElementById('analysis-details');
+    if (analysisCard) {
+        analysisCard.classList.toggle('collapsed');
+    }
+}
+window.toggleAnalysisDetails = toggleAnalysisDetails;
+
+// Toggle community details visibility
+function toggleCommunityDetails(btn) {
+    const card = btn.closest('.recommendation-card');
+    const grid = card.querySelector('.community-data-grid');
+    
+    if (grid.style.display === 'none') {
+        grid.style.display = 'grid';
+        btn.textContent = '📋 Hide';
+    } else {
+        grid.style.display = 'none';
+        btn.textContent = '📋 Details';
+    }
+}
+
+window.toggleCommunityDetails = toggleCommunityDetails;
+
+// ========================================
+// Historical Charts
+// ========================================
+
+async function loadHistoricalCharts() {
+    try {
+        // Fetch all three histories in parallel
+        const [timeRes, tokenRes, costRes] = await Promise.all([
+            fetch('/api/run-logs/history/processing-time?limit=15'),
+            fetch('/api/run-logs/history/tokens?limit=15'),
+            fetch('/api/run-logs/history/cost?limit=15')
+        ]);
+        
+        const [timeData, tokenData, costData] = await Promise.all([
+            timeRes.json(),
+            tokenRes.json(),
+            costRes.json()
+        ]);
+        
+        // Render charts with real data (or fallback to empty)
+        const timeChart = document.getElementById('chart-processing-time');
+        const tokenChart = document.getElementById('chart-tokens');
+        const costChart = document.getElementById('chart-cost');
+        
+        if (timeChart && timeData.data?.length > 0) {
+            timeChart.appendChild(MiniChart.create(timeData.data, { color: 'var(--primary)', showFill: true }));
+        }
+        
+        if (tokenChart && tokenData.data?.length > 0) {
+            tokenChart.appendChild(MiniChart.create(tokenData.data, { color: 'var(--info)', showFill: true }));
+        }
+        
+        if (costChart && costData.data?.length > 0) {
+            // Scale cost data for visibility (multiply by 1000 for cents display)
+            const scaledCosts = costData.data.map(c => c * 1000);
+            costChart.appendChild(MiniChart.create(scaledCosts, { color: 'var(--warning)', showFill: true }));
+        }
+        
+    } catch (error) {
+        console.warn('Failed to load historical charts:', error);
+    }
 }
 
 // ========================================
@@ -1851,6 +2147,7 @@ async function loadAdminConfig() {
                 document.getElementById('session-timeout').value = config.voice_agent.session_timeout_minutes || 30;
                 document.getElementById('default-language').value = config.voice_agent.default_language || 'english';
                 document.getElementById('enable-voice-agent').checked = config.voice_agent.enable_voice_agent !== false;
+                document.getElementById('voice-push-to-crm').checked = config.voice_agent.push_to_crm !== false;
             }
             
             // Load ranking weights
@@ -1900,7 +2197,8 @@ async function saveVoiceSettings() {
             max_concurrent_sessions: parseInt(document.getElementById('max-sessions').value),
             session_timeout_minutes: parseInt(document.getElementById('session-timeout').value),
             default_language: document.getElementById('default-language').value,
-            enable_voice_agent: document.getElementById('enable-voice-agent').checked
+            enable_voice_agent: document.getElementById('enable-voice-agent').checked,
+            push_to_crm: document.getElementById('voice-push-to-crm').checked
         };
         
         const response = await fetch('/api/admin/voice-settings', {

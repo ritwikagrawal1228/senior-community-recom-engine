@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Consultation - Senior Living Assistant</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=15">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(180deg, #F5F7FA 0%, #E8ECF2 100%);
+            background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -27,59 +27,37 @@
             padding: 20px;
             position: relative;
             overflow: hidden;
+            color: #fff;
         }
 
-        /* Animated Background Orbs */
-        .orb {
+        /* Animated Background */
+        .bg-gradient {
             position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.6;
-            pointer-events: none;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 122, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(88, 86, 214, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(52, 199, 89, 0.1) 0%, transparent 60%);
+            animation: bgPulse 8s ease-in-out infinite;
             z-index: 0;
         }
 
-        .orb-1 {
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(0, 122, 255, 0.4) 0%, transparent 70%);
-            top: -100px;
-            left: -100px;
-            animation: float1 20s ease-in-out infinite;
-        }
-
-        .orb-2 {
-            width: 350px;
-            height: 350px;
-            background: radial-gradient(circle, rgba(175, 82, 222, 0.35) 0%, transparent 70%);
-            bottom: -50px;
-            right: -50px;
-            animation: float2 25s ease-in-out infinite;
-        }
-
-        @keyframes float1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(50px, 50px) scale(1.1); }
-            66% { transform: translate(-30px, 20px) scale(0.95); }
-        }
-
-        @keyframes float2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(-40px, -30px) scale(1.05); }
-            66% { transform: translate(30px, -50px) scale(0.9); }
+        @keyframes bgPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .voice-container {
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 500px;
-            background: rgba(255, 255, 255, 0.72);
+            max-width: 420px;
+            background: rgba(30, 30, 40, 0.8);
             backdrop-filter: blur(40px) saturate(180%);
             -webkit-backdrop-filter: blur(40px) saturate(180%);
             border-radius: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
             padding: 40px 30px;
             text-align: center;
         }
@@ -91,13 +69,19 @@
         .voice-logo {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #007AFF 0%, #AF52DE 50%, #32ADE6 100%);
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #34C759 100%);
             border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
-            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% { box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4); }
+            50% { box-shadow: 0 8px 48px rgba(0, 122, 255, 0.6); }
         }
 
         .voice-logo svg {
@@ -107,53 +91,58 @@
         }
 
         .voice-header h1 {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            color: #1D1D1F;
+            color: #fff;
             margin-bottom: 8px;
         }
 
         .voice-header p {
-            color: #6E6E73;
-            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.95rem;
         }
 
-        /* Status Display */
-        .voice-status-display {
+        /* Call Status */
+        .call-status {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            padding: 12px 20px;
-            background: rgba(0, 122, 255, 0.1);
-            border-radius: 16px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
             margin-bottom: 30px;
         }
 
-        .status-dot {
+        .status-indicator {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             background: #8E8E93;
+            transition: all 0.3s ease;
         }
 
-        .status-dot.connecting {
+        .status-indicator.connecting {
             background: #FF9500;
             animation: pulse 1.5s infinite;
         }
 
-        .status-dot.ready {
+        .status-indicator.ready {
             background: #34C759;
         }
 
-        .status-dot.listening {
+        .status-indicator.in-call {
             background: #34C759;
-            animation: pulse 1s infinite;
+            animation: pulse 2s infinite;
         }
 
-        .status-dot.speaking {
+        .status-indicator.speaking {
             background: #007AFF;
             animation: pulse 0.8s infinite;
+        }
+
+        .status-indicator.ended {
+            background: #FF3B30;
         }
 
         @keyframes pulse {
@@ -161,92 +150,34 @@
             50% { transform: scale(1.3); opacity: 0.7; }
         }
 
-        .status-text {
+        .status-label {
             font-weight: 500;
-            color: #1D1D1F;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
         }
 
-        /* Main Voice Button */
-        .voice-button-container {
-            margin-bottom: 30px;
+        .call-timer {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 8px;
         }
 
-        .voice-button {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #007AFF 0%, #AF52DE 100%);
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4);
-            position: relative;
-        }
-
-        .voice-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 12px 40px rgba(0, 122, 255, 0.5);
-        }
-
-        .voice-button:active {
-            transform: scale(0.98);
-        }
-
-        .voice-button.listening {
-            animation: breathe 2s ease-in-out infinite;
-        }
-
-        @keyframes breathe {
-            0%, 100% { box-shadow: 0 8px 32px rgba(0, 122, 255, 0.4); }
-            50% { box-shadow: 0 8px 60px rgba(0, 122, 255, 0.6); }
-        }
-
-        .voice-button svg {
-            width: 60px;
-            height: 60px;
-        }
-
-        .voice-button .pulse-ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 3px solid rgba(0, 122, 255, 0.5);
-            animation: ring-pulse 2s ease-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes ring-pulse {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
-        }
-
-        .voice-button-label {
-            margin-top: 15px;
-            font-size: 1rem;
-            color: #6E6E73;
-        }
-
-        /* Audio Visualizer */
+        /* Audio Visualizer - Enhanced */
         .audio-visualizer {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 4px;
-            height: 50px;
-            margin-bottom: 20px;
+            height: 80px;
+            margin-bottom: 30px;
         }
 
         .audio-visualizer .bar {
-            width: 4px;
+            width: 6px;
             height: 20px;
-            background: linear-gradient(180deg, #007AFF, #AF52DE);
-            border-radius: 2px;
+            background: linear-gradient(180deg, #007AFF, #5856D6);
+            border-radius: 3px;
             transition: height 0.1s ease;
         }
 
@@ -257,32 +188,107 @@
         .audio-visualizer .bar:nth-child(1) { animation-delay: 0s; }
         .audio-visualizer .bar:nth-child(2) { animation-delay: 0.1s; }
         .audio-visualizer .bar:nth-child(3) { animation-delay: 0.2s; }
-        .audio-visualizer .bar:nth-child(4) { animation-delay: 0.3s; }
-        .audio-visualizer .bar:nth-child(5) { animation-delay: 0.4s; }
-        .audio-visualizer .bar:nth-child(6) { animation-delay: 0.5s; }
-        .audio-visualizer .bar:nth-child(7) { animation-delay: 0.6s; }
-        .audio-visualizer .bar:nth-child(8) { animation-delay: 0.7s; }
-        .audio-visualizer .bar:nth-child(9) { animation-delay: 0.8s; }
-        .audio-visualizer .bar:nth-child(10) { animation-delay: 0.9s; }
+        .audio-visualizer .bar:nth-child(4) { animation-delay: 0.15s; }
+        .audio-visualizer .bar:nth-child(5) { animation-delay: 0.25s; }
+        .audio-visualizer .bar:nth-child(6) { animation-delay: 0.1s; }
+        .audio-visualizer .bar:nth-child(7) { animation-delay: 0.2s; }
 
         @keyframes audioBar {
             0%, 100% { height: 20px; }
-            50% { height: 40px; }
+            50% { height: 60px; }
+        }
+
+        /* Call Buttons */
+        .call-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .call-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .call-btn svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .call-btn.join {
+            background: linear-gradient(135deg, #34C759 0%, #30D158 100%);
+            box-shadow: 0 8px 32px rgba(52, 199, 89, 0.4);
+        }
+
+        .call-btn.join:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(52, 199, 89, 0.5);
+        }
+
+        .call-btn.end {
+            background: linear-gradient(135deg, #FF3B30 0%, #FF453A 100%);
+            box-shadow: 0 8px 32px rgba(255, 59, 48, 0.4);
+        }
+
+        .call-btn.end:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 12px 40px rgba(255, 59, 48, 0.5);
+        }
+
+        .call-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .call-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        /* Ringing Animation */
+        .call-btn.join.ringing::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 3px solid rgba(52, 199, 89, 0.5);
+            animation: ringPulse 1.5s ease-out infinite;
+        }
+
+        @keyframes ringPulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .btn-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 12px;
         }
 
         /* Conversation Display */
         .conversation-display {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 20px;
             padding: 20px;
             margin-bottom: 20px;
             max-height: 200px;
             overflow-y: auto;
             text-align: left;
+            min-height: 100px;
         }
 
         .conversation-message {
-            margin-bottom: 15px;
+            margin-bottom: 16px;
             animation: fadeIn 0.3s ease;
         }
 
@@ -296,40 +302,51 @@
         }
 
         .conversation-message.user {
-            padding-left: 20px;
+            padding-left: 16px;
             border-left: 3px solid #007AFF;
         }
 
         .message-role {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            color: #6E6E73;
+            color: rgba(255, 255, 255, 0.5);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 4px;
         }
 
         .message-text {
-            font-size: 0.95rem;
-            color: #1D1D1F;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
             line-height: 1.5;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+            padding: 20px;
         }
 
         /* Text Input Fallback */
         .text-input-container {
             display: flex;
             gap: 10px;
-            margin-top: 20px;
         }
 
         .text-input {
             flex: 1;
             padding: 14px 18px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
             transition: all 0.2s ease;
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
         }
 
         .text-input:focus {
@@ -338,9 +355,13 @@
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
         }
 
+        .text-input:disabled {
+            opacity: 0.5;
+        }
+
         .send-btn {
             padding: 14px 24px;
-            background: linear-gradient(135deg, #007AFF 0%, #AF52DE 100%);
+            background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
             color: white;
             border: none;
             border-radius: 16px;
@@ -349,48 +370,116 @@
             transition: all 0.2s ease;
         }
 
-        .send-btn:hover {
+        .send-btn:hover:not(:disabled) {
             transform: scale(1.02);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* Footer */
         .voice-footer {
             margin-top: 20px;
-            font-size: 0.85rem;
-            color: #8E8E93;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.4);
         }
 
         /* Error State */
         .error-message {
-            background: rgba(255, 59, 48, 0.1);
-            color: #FF3B30;
+            background: rgba(255, 59, 48, 0.2);
+            color: #FF6B6B;
             padding: 12px 16px;
             border-radius: 12px;
             margin-bottom: 20px;
             font-size: 0.9rem;
+            border: 1px solid rgba(255, 59, 48, 0.3);
         }
 
-        /* Loading State */
-        .loading-dots {
+        /* Recommendations Panel */
+        .recommendations-panel {
+            background: rgba(52, 199, 89, 0.1);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .recommendations-panel h3 {
+            font-size: 1rem;
+            color: #34C759;
+            margin-bottom: 12px;
+        }
+
+        .recommendation-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .rec-header {
             display: flex;
-            gap: 6px;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
         }
 
-        .loading-dots span {
-            width: 8px;
-            height: 8px;
-            background: #007AFF;
+        .rec-rank {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            animation: loadingDot 1.4s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
         }
 
-        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        .rec-name {
+            flex: 1;
+            margin-left: 10px;
+            font-weight: 600;
+            color: #fff;
+        }
 
-        @keyframes loadingDot {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
+        .rec-price {
+            color: #34C759;
+            font-weight: 600;
+        }
+
+        .rec-details {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .rec-score {
+            display: inline-block;
+            background: rgba(0, 122, 255, 0.2);
+            color: #007AFF;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-top: 6px;
+        }
+
+        /* Searching Status */
+        .status-indicator.searching {
+            background: #FF9500;
+            animation: pulse 1s infinite;
         }
 
         /* Responsive */
@@ -400,39 +489,37 @@
                 border-radius: 24px;
             }
 
-            .voice-button {
-                width: 120px;
-                height: 120px;
+            .call-btn {
+                width: 70px;
+                height: 70px;
             }
 
-            .voice-button svg {
-                width: 50px;
-                height: 50px;
+            .call-btn svg {
+                width: 28px;
+                height: 28px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Background Orbs -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <!-- Background -->
+    <div class="bg-gradient"></div>
 
     <div class="voice-container">
         <div class="voice-header">
             <div class="voice-logo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                 </svg>
             </div>
-            <h1>Voice Consultation</h1>
-            <p>Speak naturally with our AI assistant</p>
+            <h1>AI Voice Consultation</h1>
+            <p>Talk naturally with Sage, your AI assistant</p>
         </div>
 
-        <div class="voice-status-display">
-            <div class="status-dot" id="status-dot"></div>
-            <span class="status-text" id="status-text">Connecting...</span>
+        <div class="call-status">
+            <div class="status-indicator" id="status-indicator"></div>
+            <span class="status-label" id="status-label">Ready to connect</span>
+            <span class="call-timer" id="call-timer" style="display: none;">00:00</span>
         </div>
 
         <div id="error-container"></div>
@@ -445,34 +532,44 @@
             <div class="bar"></div>
             <div class="bar"></div>
             <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
         </div>
 
-        <div class="voice-button-container">
-            <button class="voice-button" id="voice-button" disabled>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                    <line x1="12" y1="19" x2="12" y2="22"></line>
-                </svg>
-                <div class="pulse-ring" style="display: none;"></div>
-            </button>
-            <p class="voice-button-label" id="voice-label">Tap to speak</p>
+        <div class="call-buttons">
+            <div style="text-align: center;">
+                <button class="call-btn join" id="join-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                </button>
+                <p class="btn-label">Join Call</p>
+            </div>
+            <div style="text-align: center;">
+                <button class="call-btn end" id="end-btn" disabled>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+                <p class="btn-label">End Call</p>
+            </div>
         </div>
 
         <div class="conversation-display" id="conversation-display">
-            <div class="loading-dots">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div class="welcome-message">
+                <p>👋 Press "Join Call" to start your consultation</p>
+                <p style="margin-top: 8px; font-size: 0.8rem;">Sage will help you find the perfect senior living community</p>
             </div>
         </div>
 
         <div class="text-input-container">
-            <input type="text" class="text-input" id="text-input" placeholder="Or type your message..." disabled>
+            <input type="text" class="text-input" id="text-input" placeholder="Or type a message..." disabled>
             <button class="send-btn" id="send-btn" disabled>Send</button>
+        </div>
+
+        <!-- Recommendations Panel (Hidden initially) -->
+        <div class="recommendations-panel" id="recommendations-panel" style="display: none;">
+            <h3>🏠 Recommended Communities</h3>
+            <div id="recommendations-list"></div>
         </div>
 
         <div class="voice-footer">
@@ -482,48 +579,46 @@
 
     <script>
         const SESSION_ID = '{{ session_id }}';
-        const SAMPLE_RATE = {{ sample_rate }};
+        const OUTPUT_SAMPLE_RATE = {{ sample_rate }};
+        const INPUT_SAMPLE_RATE = 16000;
         
         // State
         let socket = null;
-        let isListening = false;
-        let mediaRecorder = null;
+        let isInCall = false;
         let audioContext = null;
-        let audioChunks = [];
+        let mediaStream = null;
+        let audioProcessor = null;
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let audioQueue = [];
+        let isPlayingAudio = false;
         
         // Elements
-        const voiceButton = document.getElementById('voice-button');
-        const voiceLabel = document.getElementById('voice-label');
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
+        const joinBtn = document.getElementById('join-btn');
+        const endBtn = document.getElementById('end-btn');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusLabel = document.getElementById('status-label');
+        const callTimer = document.getElementById('call-timer');
         const audioVisualizer = document.getElementById('audio-visualizer');
         const conversationDisplay = document.getElementById('conversation-display');
         const textInput = document.getElementById('text-input');
         const sendBtn = document.getElementById('send-btn');
         const errorContainer = document.getElementById('error-container');
-        const pulseRing = document.querySelector('.pulse-ring');
         
-        // Initialize
+        // Initialize Socket.IO connection
         function init() {
-            // Connect to Socket.IO
             socket = io();
             
             socket.on('connect', () => {
                 console.log('Connected to server');
-                updateStatus('connecting', 'Joining session...');
-                
-                // Join the voice session
-                socket.emit('join_session', {
-                    session_id: SESSION_ID,
-                    client_type: 'client'
-                });
+                updateStatus('ready', 'Ready to connect');
             });
             
             socket.on('joined', (data) => {
                 console.log('Joined session:', data);
-                updateStatus('connecting', 'Starting voice agent...');
+                updateStatus('connecting', 'Connecting to AI...');
                 
-                // Start the voice agent
+                // Start the voice agent (CRM setting is handled server-side via admin config)
                 socket.emit('start_voice', {
                     session_id: SESSION_ID,
                     language: 'english'
@@ -535,30 +630,50 @@
             });
             
             socket.on('voice_ready', (data) => {
-                updateStatus('ready', 'AI assistant ready');
-                enableControls();
+                console.log('Voice agent ready');
+                updateStatus('in-call', 'In call with Sage');
+                startCallTimer();
+                enableTextInput();
+                
+                // Clear welcome message and start conversation
                 conversationDisplay.innerHTML = '';
+                
+                // Start continuous audio streaming
+                startAudioStream();
             });
             
             socket.on('voice_message', (data) => {
                 addMessage(data.role, data.text);
                 
                 if (data.role === 'agent') {
-                    updateStatus('speaking', 'AI is speaking...');
+                    updateStatus('speaking', 'Sage is speaking...');
+                } else {
+                    updateStatus('in-call', 'In call with Sage');
                 }
             });
             
             socket.on('voice_audio', (data) => {
-                playAudio(data.audio, data.sample_rate);
+                queueAudio(data.audio, data.sample_rate);
             });
             
             socket.on('voice_status', (data) => {
-                updateStatus(data.status, data.message);
+                if (isInCall) {
+                    if (data.status === 'searching') {
+                        updateStatus('searching', '🔍 ' + data.message);
+                    } else {
+                        updateStatus(data.status === 'speaking' ? 'speaking' : 'in-call', 
+                                    data.status === 'speaking' ? 'Sage is speaking...' : 'In call with Sage');
+                    }
+                }
+            });
+            
+            socket.on('voice_recommendations', (data) => {
+                console.log('Recommendations received:', data);
+                showRecommendations(data.recommendations);
             });
             
             socket.on('voice_stopped', () => {
-                updateStatus('ended', 'Session ended');
-                disableControls();
+                endCall();
             });
             
             socket.on('error', (data) => {
@@ -566,58 +681,35 @@
             });
             
             socket.on('disconnect', () => {
-                updateStatus('disconnected', 'Disconnected');
-                disableControls();
+                if (isInCall) {
+                    endCall();
+                }
+                updateStatus('ended', 'Disconnected');
             });
             
-            // Voice button handlers
-            voiceButton.addEventListener('mousedown', startListening);
-            voiceButton.addEventListener('mouseup', stopListening);
-            voiceButton.addEventListener('mouseleave', stopListening);
-            voiceButton.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                startListening();
-            });
-            voiceButton.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                stopListening();
-            });
+            // Button handlers
+            joinBtn.addEventListener('click', joinCall);
+            endBtn.addEventListener('click', endCall);
             
             // Text input handlers
             sendBtn.addEventListener('click', sendTextMessage);
             textInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
                     sendTextMessage();
                 }
             });
         }
         
         function updateStatus(status, message) {
-            statusDot.className = 'status-dot ' + status;
-            statusText.textContent = message;
+            statusIndicator.className = 'status-indicator ' + status;
+            statusLabel.textContent = message;
             
-            if (status === 'listening') {
+            if (status === 'in-call' || status === 'speaking') {
                 audioVisualizer.classList.add('active');
-                pulseRing.style.display = 'block';
-            } else if (status === 'speaking') {
-                audioVisualizer.classList.add('active');
-                pulseRing.style.display = 'none';
             } else {
                 audioVisualizer.classList.remove('active');
-                pulseRing.style.display = 'none';
             }
-        }
-        
-        function enableControls() {
-            voiceButton.disabled = false;
-            textInput.disabled = false;
-            sendBtn.disabled = false;
-        }
-        
-        function disableControls() {
-            voiceButton.disabled = true;
-            textInput.disabled = true;
-            sendBtn.disabled = true;
         }
         
         function showError(message) {
@@ -627,111 +719,270 @@
             }, 5000);
         }
         
-        async function startListening() {
-            if (isListening || voiceButton.disabled) return;
+        function enableTextInput() {
+            textInput.disabled = false;
+            sendBtn.disabled = false;
+        }
+        
+        function disableTextInput() {
+            textInput.disabled = true;
+            sendBtn.disabled = true;
+        }
+        
+        // Join call
+        async function joinCall() {
+            if (isInCall) return;
             
             try {
-                // Request microphone access
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        sampleRate: SAMPLE_RATE,
-                        channelCount: 1,
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
+                // Request microphone permission first
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                isInCall = true;
+                joinBtn.disabled = true;
+                joinBtn.classList.add('ringing');
+                endBtn.disabled = false;
+                
+                updateStatus('connecting', 'Joining call...');
+                
+                // Join the voice session room
+                socket.emit('join_session', {
+                    session_id: SESSION_ID,
+                    client_type: 'client'
                 });
                 
-                isListening = true;
-                voiceButton.classList.add('listening');
-                updateStatus('listening', 'Listening...');
-                voiceLabel.textContent = 'Release to send';
-                
-                // Create audio context and recorder
-                audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
-                const source = audioContext.createMediaStreamSource(stream);
-                
-                // Use ScriptProcessorNode for raw audio access
-                const processor = audioContext.createScriptProcessor(4096, 1, 1);
-                audioChunks = [];
-                
-                processor.onaudioprocess = (e) => {
-                    if (isListening) {
-                        const inputData = e.inputBuffer.getChannelData(0);
-                        // Convert to 16-bit PCM
-                        const pcmData = new Int16Array(inputData.length);
-                        for (let i = 0; i < inputData.length; i++) {
-                            pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
-                        }
-                        audioChunks.push(pcmData.buffer);
-                    }
-                };
-                
-                source.connect(processor);
-                processor.connect(audioContext.destination);
-                
-                // Store references for cleanup
-                window.currentStream = stream;
-                window.currentProcessor = processor;
-                window.currentSource = source;
-                
             } catch (error) {
-                console.error('Error accessing microphone:', error);
-                showError('Could not access microphone. Please check permissions.');
+                console.error('Microphone access denied:', error);
+                showError('Microphone access is required for voice calls. Please allow microphone access and try again.');
+                isInCall = false;
+                joinBtn.disabled = false;
             }
         }
         
-        function stopListening() {
-            if (!isListening) return;
+        // End call
+        function endCall() {
+            if (!isInCall && !joinBtn.disabled) return;
             
-            isListening = false;
-            voiceButton.classList.remove('listening');
-            updateStatus('ready', 'Processing...');
-            voiceLabel.textContent = 'Tap to speak';
+            isInCall = false;
+            stopAudioStream();
+            stopCallTimer();
             
-            // Cleanup audio
-            if (window.currentStream) {
-                window.currentStream.getTracks().forEach(track => track.stop());
+            joinBtn.disabled = false;
+            joinBtn.classList.remove('ringing');
+            endBtn.disabled = true;
+            disableTextInput();
+            
+            updateStatus('ended', 'Call ended');
+            audioVisualizer.classList.remove('active');
+            
+            // Notify server
+            socket.emit('stop_voice', { session_id: SESSION_ID });
+            socket.emit('leave_session', { session_id: SESSION_ID });
+            
+            // Add end message
+            addMessage('system', 'Call ended. Thank you for using our service!');
+        }
+        
+        // Start continuous audio streaming
+        async function startAudioStream() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        sampleRate: INPUT_SAMPLE_RATE,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+                
+                audioContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                
+                // Create script processor for continuous streaming
+                audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                audioProcessor.onaudioprocess = (e) => {
+                    if (!isInCall) return;
+                    
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Convert to 16-bit PCM
+                    const pcmData = new Int16Array(inputData.length);
+                    for (let i = 0; i < inputData.length; i++) {
+                        pcmData[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
+                    }
+                    
+                    // Send audio chunk to server
+                    const base64Audio = arrayBufferToBase64(pcmData.buffer);
+                    socket.emit('voice_input', {
+                        session_id: SESSION_ID,
+                        audio: base64Audio
+                    });
+                };
+                
+                source.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                console.log('Audio streaming started');
+                
+            } catch (error) {
+                console.error('Error starting audio stream:', error);
+                showError('Failed to start audio. Please check microphone permissions.');
             }
-            if (window.currentProcessor) {
-                window.currentProcessor.disconnect();
+        }
+        
+        // Stop audio streaming
+        function stopAudioStream() {
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
             }
-            if (window.currentSource) {
-                window.currentSource.disconnect();
+            
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
             }
+            
             if (audioContext) {
                 audioContext.close();
                 audioContext = null;
             }
             
-            // Send audio data
-            if (audioChunks.length > 0) {
-                const combinedBuffer = combineAudioChunks(audioChunks);
-                const base64Audio = arrayBufferToBase64(combinedBuffer);
-                
-                socket.emit('voice_input', {
-                    session_id: SESSION_ID,
-                    audio: base64Audio
-                });
-                
-                audioChunks = [];
-            }
-            
-            updateStatus('ready', 'AI assistant ready');
+            console.log('Audio streaming stopped');
         }
         
-        function combineAudioChunks(chunks) {
-            const totalLength = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-            const combined = new Uint8Array(totalLength);
-            let offset = 0;
+        // Call timer
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callTimer.style.display = 'inline';
+            callTimer.textContent = '00:00';
             
-            for (const chunk of chunks) {
-                combined.set(new Uint8Array(chunk), offset);
-                offset += chunk.byteLength;
-            }
-            
-            return combined.buffer;
+            callTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                callTimer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
         }
         
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callTimer.style.display = 'none';
+        }
+        
+        // Audio playback queue
+        function queueAudio(base64Audio, sampleRate) {
+            audioQueue.push({ audio: base64Audio, sampleRate: sampleRate || OUTPUT_SAMPLE_RATE });
+            if (!isPlayingAudio) {
+                playNextAudio();
+            }
+        }
+        
+        async function playNextAudio() {
+            if (audioQueue.length === 0) {
+                isPlayingAudio = false;
+                if (isInCall) {
+                    updateStatus('in-call', 'In call with Sage');
+                }
+                return;
+            }
+            
+            isPlayingAudio = true;
+            const { audio, sampleRate } = audioQueue.shift();
+            
+            try {
+                const audioBuffer = base64ToArrayBuffer(audio);
+                const ctx = new AudioContext({ sampleRate: sampleRate });
+                
+                const pcmData = new Int16Array(audioBuffer);
+                const floatData = new Float32Array(pcmData.length);
+                
+                for (let i = 0; i < pcmData.length; i++) {
+                    floatData[i] = pcmData[i] / 32768;
+                }
+                
+                const buffer = ctx.createBuffer(1, floatData.length, sampleRate);
+                buffer.copyToChannel(floatData, 0);
+                
+                const source = ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(ctx.destination);
+                source.start();
+                
+                source.onended = () => {
+                    ctx.close();
+                    playNextAudio();
+                };
+                
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                playNextAudio();
+            }
+        }
+        
+        // Text message
+        function sendTextMessage() {
+            const text = textInput.value.trim();
+            if (!text || !isInCall) return;
+            
+            socket.emit('voice_input', {
+                session_id: SESSION_ID,
+                text: text
+            });
+            
+            addMessage('user', text);
+            textInput.value = '';
+        }
+        
+        // Add message to conversation
+        function addMessage(role, text) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `conversation-message ${role}`;
+            
+            const roleLabel = role === 'agent' ? '🤖 Sage' : role === 'user' ? '👤 You' : 'ℹ️ System';
+            
+            messageEl.innerHTML = `
+                <div class="message-role">${roleLabel}</div>
+                <div class="message-text">${text}</div>
+            `;
+            
+            conversationDisplay.appendChild(messageEl);
+            conversationDisplay.scrollTop = conversationDisplay.scrollHeight;
+        }
+        
+        // Show recommendations in the UI
+        function showRecommendations(recommendations) {
+            const panel = document.getElementById('recommendations-panel');
+            const list = document.getElementById('recommendations-list');
+            
+            if (!recommendations || recommendations.length === 0) {
+                return;
+            }
+            
+            list.innerHTML = recommendations.map((rec, i) => `
+                <div class="recommendation-card">
+                    <div class="rec-header">
+                        <span class="rec-rank">${i + 1}</span>
+                        <span class="rec-name">${rec.community_name || 'Community #' + (rec.community_id || i+1)}</span>
+                        <span class="rec-price">$${(rec.monthly_fee || rec.base_price || 'N/A').toLocaleString()}/mo</span>
+                    </div>
+                    <div class="rec-details">
+                        ${rec.city ? rec.city + ' • ' : ''}${rec.care_level || 'Assisted Living'}
+                    </div>
+                    <span class="rec-score">${Math.round((rec.final_score || rec.score || 0) * 100)}% match</span>
+                </div>
+            `).join('');
+            
+            panel.style.display = 'block';
+            
+            // Also add a system message
+            addMessage('system', `✅ Found ${recommendations.length} matching communities! Sage will tell you about them.`);
+        }
+        
+        // Utility functions
         function arrayBufferToBase64(buffer) {
             const bytes = new Uint8Array(buffer);
             let binary = '';
@@ -750,62 +1001,7 @@
             return bytes.buffer;
         }
         
-        async function playAudio(base64Audio, sampleRate) {
-            try {
-                const audioBuffer = base64ToArrayBuffer(base64Audio);
-                const ctx = new AudioContext({ sampleRate: sampleRate });
-                
-                // Convert PCM to AudioBuffer
-                const pcmData = new Int16Array(audioBuffer);
-                const floatData = new Float32Array(pcmData.length);
-                
-                for (let i = 0; i < pcmData.length; i++) {
-                    floatData[i] = pcmData[i] / 32768;
-                }
-                
-                const buffer = ctx.createBuffer(1, floatData.length, sampleRate);
-                buffer.copyToChannel(floatData, 0);
-                
-                const source = ctx.createBufferSource();
-                source.buffer = buffer;
-                source.connect(ctx.destination);
-                source.start();
-                
-                source.onended = () => {
-                    ctx.close();
-                    updateStatus('ready', 'AI assistant ready');
-                };
-                
-            } catch (error) {
-                console.error('Error playing audio:', error);
-            }
-        }
-        
-        function sendTextMessage() {
-            const text = textInput.value.trim();
-            if (!text) return;
-            
-            socket.emit('voice_input', {
-                session_id: SESSION_ID,
-                text: text
-            });
-            
-            textInput.value = '';
-        }
-        
-        function addMessage(role, text) {
-            const messageEl = document.createElement('div');
-            messageEl.className = `conversation-message ${role}`;
-            messageEl.innerHTML = `
-                <div class="message-role">${role === 'agent' ? '🤖 AI Assistant' : '👤 You'}</div>
-                <div class="message-text">${text}</div>
-            `;
-            
-            conversationDisplay.appendChild(messageEl);
-            conversationDisplay.scrollTop = conversationDisplay.scrollHeight;
-        }
-        
-        // Start when page loads
+        // Initialize on page load
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>

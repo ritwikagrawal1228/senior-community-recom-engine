@@ -1190,6 +1190,18 @@ class MultiLevelRankingEngine:
         """
         Export rankings to structured format for CRM integration
         """
+        def clean_community_data(data: Dict) -> Dict:
+            """Clean community data for JSON serialization"""
+            cleaned = {}
+            for key, value in data.items():
+                if pd.isna(value):
+                    cleaned[key] = None
+                elif isinstance(value, (np.integer, np.floating)):
+                    cleaned[key] = float(value) if isinstance(value, np.floating) else int(value)
+                else:
+                    cleaned[key] = value
+            return cleaned
+        
         return {
             "client_info": {
                 "client_name": client_req.client_name or "Unknown",
@@ -1237,7 +1249,10 @@ class MultiLevelRankingEngine:
                         "couple_reason": r.couple_reason,
                         "amenity_reason": r.amenity_reason,
                         "holistic_reason": r.holistic_reason
-                    }
+                    },
+                    
+                    # Full community data from database for detailed view
+                    "community_data": clean_community_data(r.community_data)
                 }
                 for r in rankings
             ],
