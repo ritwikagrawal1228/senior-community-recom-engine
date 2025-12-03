@@ -367,7 +367,9 @@ class GeminiVoiceAgent:
                     # Handle interruptions (like reference checks for interrupted flag)
                     if hasattr(response, 'interrupted') and response.interrupted:
                         logger.info("Response interrupted by user")
-                        # Clear any pending audio if needed
+                        # Notify frontend to stop audio playback
+                        if self.on_status_callback:
+                            await self.on_status_callback('interrupted', 'Interrupted')
                 
                 # Turn complete - check for SEARCH_READY trigger
                 if accumulated_text and not self.search_triggered:

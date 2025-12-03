@@ -504,15 +504,17 @@
         let audioQueue = [];
         let isPlaying = false;
         let nextStartTime = 0;
+        let scheduledSources = new Set(); // Track scheduled sources for interruption
         
         // Input
         let mediaStream = null;
         let inputContext = null;
         let scriptProcessor = null;
         
-        // Visualization State
+        // Visualization State (smoothed)
         let inputVolume = 0;
         let outputVolume = 0;
+        let smoothedOutputVolume = 0;
         let outputAnalyser = null;
         
         // UI Elements
@@ -541,9 +543,9 @@
                     return;
                 }
 
-                // Use max volume
-                const vol = Math.max(inputVolume, outputVolume);
-                const isOutput = outputVolume > inputVolume;
+                // Use smoothed volumes (like reference)
+                const vol = Math.max(inputVolume, smoothedOutputVolume);
+                const isOutput = smoothedOutputVolume > inputVolume;
 
                 // Sage Theme Colors (matching reference)
                 // Output (Agent speaking): Teal/Green (74, 222, 128)
@@ -672,84 +674,108 @@
 
         function stopInputStream() {
             if (scriptProcessor) scriptProcessor.disconnect();
+            if (inputContext) {
+                inputContext.close();
+                inputContext = null;
+            }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            // Stop all scheduled audio sources
+            scheduledSources.forEach(source => {
+                try {
+                    source.stop();
+                } catch (e) {
+                    // Ignore errors
+                }
+            });
+            scheduledSources.clear();
+            nextStartTime = 0;
+            outputVolume = 0;
+            smoothedOutputVolume = 0;
+            isPlaying = false;
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+                audioContext = null;
+            }
             if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
             if (inputContext) inputContext.close();
             inputVolume = 0;
         }
 
-        // Output Handling (Playback)
+        // Output Handling (Playback) - Gapless scheduling like reference
         function queueAudio(base64Data) {
-            audioQueue.push(base64Data);
-            if (!isPlaying) {
-                playNextChunk();
-            }
-        }
-
-        async function playNextChunk() {
-            if (audioQueue.length === 0) {
-                isPlaying = false;
-                outputVolume = 0;
+            if (!audioContext || audioContext.state === 'closed') {
                 return;
             }
-
-            isPlaying = true;
-            const base64Data = audioQueue.shift();
             
             try {
                 const audioBuffer = base64ToArrayBuffer(base64Data);
                 
-                // Create buffer
-                // Since we know it's 24kHz PCM 16-bit from backend
+                // Decode PCM (24kHz, 16-bit from backend)
                 const pcmData = new Int16Array(audioBuffer);
                 const floatData = new Float32Array(pcmData.length);
                 for (let i = 0; i < pcmData.length; i++) {
-                    floatData[i] = pcmData[i] / 32768;
+                    floatData[i] = pcmData[i] / 32768.0;
                 }
                 
+                // Create audio buffer
                 const buffer = audioContext.createBuffer(1, floatData.length, OUTPUT_SAMPLE_RATE);
-                buffer.copyToChannel(floatData, 0);
-
+                buffer.getChannelData(0).set(floatData);
+                
+                // Calculate volume for visualization (smoothed like reference)
+                let sum = 0;
+                for (let i = 0; i < floatData.length; i += 10) {
+                    sum += Math.abs(floatData[i]);
+                }
+                const avg = sum / (floatData.length / 10);
+                outputVolume = Math.min(1, avg * 5); // Amplify for visuals
+                
+                // Schedule gapless playback (like reference)
                 const source = audioContext.createBufferSource();
                 source.buffer = buffer;
+                source.connect(audioContext.destination);
                 
-                // Connect to Analyser for Output Volume
-                source.connect(outputAnalyser);
-                // Analyser is already connected to destination in init
+                // Ensure we schedule after current time
+                const currentTime = audioContext.currentTime;
+                if (nextStartTime < currentTime) {
+                    nextStartTime = currentTime;
+                }
                 
+                // Schedule at nextStartTime for gapless playback
+                source.start(nextStartTime);
+                nextStartTime += buffer.duration;
+                
+                // Track scheduled sources
+                scheduledSources.add(source);
+                isPlaying = true;
+                
+                // Cleanup when done
                 source.onended = () => {
-                    playNextChunk();
+                    scheduledSources.delete(source);
+                    if (scheduledSources.size === 0) {
+                        isPlaying = false;
+                        outputVolume = 0;
+                        smoothedOutputVolume = 0;
+                    }
                 };
                 
-                source.start();
-                
-                // Update output volume from analyser loop
-                updateOutputVolume();
-
             } catch (e) {
-                console.error("Playback error", e);
-                playNextChunk();
+                console.error("Audio playback error", e);
             }
         }
-
-        function updateOutputVolume() {
-            if (!isPlaying) {
-                outputVolume = 0;
-                return;
-            }
+        
+        // Smooth volume for visualizer (like reference)
+        function smoothVolume() {
+            // Smooth output volume
+            smoothedOutputVolume = smoothedOutputVolume * 0.7 + outputVolume * 0.3;
             
-            const dataArray = new Uint8Array(outputAnalyser.frequencyBinCount);
-            outputAnalyser.getByteTimeDomainData(dataArray);
-            
-            let sum = 0;
-            for(let i = 0; i < dataArray.length; i++) {
-                const v = (dataArray[i] - 128) / 128.0;
-                sum += v * v;
-            }
-            const rms = Math.sqrt(sum / dataArray.length);
-            outputVolume = Math.min(1, rms * 5);
-            
-            requestAnimationFrame(updateOutputVolume);
+            requestAnimationFrame(smoothVolume);
         }
+        
+        // Start smoothing loop
+        smoothVolume();
 
         // ==========================================
         // CONNECTION & UI LOGIC
@@ -832,6 +858,21 @@
 
         socket.on('voice_audio', (data) => {
             queueAudio(data.audio);
+        });
+        
+        socket.on('voice_interrupted', () => {
+            // Stop all scheduled audio sources (like reference)
+            scheduledSources.forEach(source => {
+                try {
+                    source.stop();
+                } catch (e) {
+                    // Ignore errors (source may already be stopped)
+                }
+            });
+            scheduledSources.clear();
+            nextStartTime = 0;
+            outputVolume = 0;
+            smoothedOutputVolume = 0;
         });
         
         socket.on('voice_recommendations', (data) => {
