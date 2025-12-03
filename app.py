@@ -431,13 +431,19 @@ def process_audio():
 
         # Push to CRM if enabled
         push_to_sheets = request.form.get('push_to_crm', 'true').lower() == 'true'
+        logger.info(f"[AUDIO] CRM push setting: push_to_crm={request.form.get('push_to_crm')}, push_to_sheets={push_to_sheets}")
         crm_result = None
 
         if push_to_sheets and os.getenv('GOOGLE_SPREADSHEET_ID'):
             try:
+                logger.info("[AUDIO] Attempting CRM push to Google Sheets...")
                 crm_result = push_to_crm(result)
+                logger.info(f"[AUDIO] CRM push SUCCESS: consultation_id={crm_result.get('consultation_id')}")
             except Exception as e:
+                logger.error(f"[AUDIO] CRM push FAILED: {e}")
                 result['crm_error'] = str(e)
+        else:
+            logger.warning(f"[AUDIO] CRM push SKIPPED: push_to_sheets={push_to_sheets}, SPREADSHEET_ID_SET={bool(os.getenv('GOOGLE_SPREADSHEET_ID'))}")
 
         # Add CRM info to result
         if crm_result:
@@ -529,15 +535,22 @@ def process_text():
         system = get_system()
         result = system.process_text_input(text)
 
-        # Push to CRM if enabled
-        push_to_sheets = data.get('push_to_crm', True)
+        # Push to CRM if enabled (handle both boolean and string values)
+        push_to_crm_value = data.get('push_to_crm', True)
+        push_to_sheets = push_to_crm_value if isinstance(push_to_crm_value, bool) else str(push_to_crm_value).lower() == 'true'
+        logger.info(f"[TEXT] CRM push setting: push_to_crm={push_to_crm_value}, push_to_sheets={push_to_sheets}")
         crm_result = None
 
         if push_to_sheets and os.getenv('GOOGLE_SPREADSHEET_ID'):
             try:
+                logger.info("[TEXT] Attempting CRM push to Google Sheets...")
                 crm_result = push_to_crm(result)
+                logger.info(f"[TEXT] CRM push SUCCESS: consultation_id={crm_result.get('consultation_id')}")
             except Exception as e:
+                logger.error(f"[TEXT] CRM push FAILED: {e}")
                 result['crm_error'] = str(e)
+        else:
+            logger.warning(f"[TEXT] CRM push SKIPPED: push_to_sheets={push_to_sheets}, SPREADSHEET_ID_SET={bool(os.getenv('GOOGLE_SPREADSHEET_ID'))}")
 
         # Add CRM info to result
         if crm_result:
