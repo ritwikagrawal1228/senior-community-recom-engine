@@ -1747,7 +1747,6 @@ def handle_start_voice(data):
                 run_log_id = None
                 
                 try:
-                    from ranking_engine import RankingEngine
                     import re
                     
                     # If params are empty (natural language trigger), extract from conversation history
@@ -1901,14 +1900,16 @@ def handle_start_voice(data):
                         )
                         future.result(timeout=30)
                     
-                    # Also notify frontend
+                    # Also notify frontend (same format as audio/text results)
                     socketio.emit('voice_recommendations', {
                         'session_id': session_id,
                         'recommendations': recommendations,
-                        'client_info': client_requirements,
+                        'client_info': result.get('client_info', client_requirements),
                         'processing_time': processing_time,
                         'run_log_id': run_log_id,
-                        'crm_pushed': crm_result is not None
+                        'crm_pushed': crm_result is not None,
+                        'consultation_id': crm_result.get('consultation_id') if crm_result else None,
+                        'performance_metrics': perf  # Include full metrics like audio/text
                     }, room=session_id)
                     
                 except Exception as e:
