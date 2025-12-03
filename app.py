@@ -1066,6 +1066,48 @@ def create_voice_session():
         if voice_session:
             voice_session.client_info['language'] = language
             voice_session.client_info['created_by'] = session.get('username', 'unknown')
+            
+            # Persist session to database for QR code persistence
+            try:
+                import json
+                from datetime import datetime
+                conn = run_logs_db.get_connection()
+                cursor = conn.cursor()
+                
+                # Check if voice_sessions table exists, create if not
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS voice_sessions (
+                        session_id TEXT PRIMARY KEY,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP,
+                        status TEXT DEFAULT 'waiting',
+                        language TEXT DEFAULT 'english',
+                        created_by TEXT,
+                        session_data JSON
+                    )
+                ''')
+                
+                # Save session
+                expires_at = voice_session.expires_at.isoformat() if voice_session.expires_at else None
+                cursor.execute('''
+                    INSERT OR REPLACE INTO voice_sessions 
+                    (session_id, expires_at, status, language, created_by, session_data)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (
+                    session_id,
+                    expires_at,
+                    voice_session.status,
+                    language,
+                    session.get('username', 'unknown'),
+                    json.dumps({
+                        'session_url': f"{request.host_url.rstrip('/')}/voice-session/{session_id}",
+                        'client_info': voice_session.client_info
+                    })
+                ))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                logger.warning(f"Failed to persist voice session: {e}")
         
         # Generate URLs
         base_url = request.host_url.rstrip('/')
@@ -1167,10 +1209,21 @@ def cleanup_sessions():
 @app.route('/api/run-logs', methods=['GET'])
 @login_required
 def get_run_logs():
-    """Get recent run logs"""
+    """Get recent run logs with optional filtering"""
     try:
         limit = request.args.get('limit', 50, type=int)
-        runs = run_logs_db.get_recent_runs(limit=limit, username=session.get('username'))
+        type_filter = request.args.get('type', 'all')
+        status_filter = request.args.get('status', 'all')
+        username = session.get('username')
+        
+        runs = run_logs_db.get_recent_runs(limit=limit, username=username)
+        
+        # Apply filters
+        if type_filter != 'all':
+            runs = [r for r in runs if r.get('input_type') == type_filter]
+        if status_filter != 'all':
+            runs = [r for r in runs if r.get('status') == status_filter]
+        
         return jsonify({
             'runs': runs,
             'total': len(runs)

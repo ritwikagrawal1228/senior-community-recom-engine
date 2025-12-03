@@ -119,6 +119,8 @@ function switchView(view) {
     if (view === 'database') {
         loadCommunities();
         loadDatabaseStats();
+    } else if (view === 'history') {
+        loadHistory();
     }
 }
 
@@ -637,6 +639,86 @@ function clearResults() {
     document.getElementById('results-section').style.display = 'none';
     document.getElementById('text-input').value = '';
     clearAudioFile();
+}
+
+// ========================================
+// History View
+// ========================================
+
+async function loadHistory() {
+    try {
+        const typeFilter = document.getElementById('history-type-filter')?.value || 'all';
+        const statusFilter = document.getElementById('history-status-filter')?.value || 'all';
+        
+        const params = new URLSearchParams();
+        if (typeFilter !== 'all') params.append('type', typeFilter);
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        
+        const response = await fetch(`/api/run-logs?${params.toString()}`);
+        if (!response.ok) throw new Error('Failed to load history');
+        
+        const data = await response.json();
+        const historyList = document.getElementById('history-list');
+        
+        if (!data.runs || data.runs.length === 0) {
+            historyList.innerHTML = `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <h3>No Consultation History</h3>
+                    <p>Your consultation history will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        
+        historyList.innerHTML = data.runs.map(run => {
+            const date = new Date(run.created_at);
+            const typeIcon = run.input_type === 'voice_agent' ? '🎤' : run.input_type === 'audio' ? '🎵' : '📝';
+            const statusBadge = run.status === 'completed' ? 
+                '<span class="badge badge-success">Completed</span>' : 
+                '<span class="badge badge-error">Failed</span>';
+            
+            return `
+                <div class="history-item" onclick="viewHistoryDetail('${run.run_id}')">
+                    <div class="history-item-header">
+                        <div class="history-item-icon">${typeIcon}</div>
+                        <div class="history-item-info">
+                            <h4>${run.input_type === 'voice_agent' ? 'Voice Consultation' : run.input_type === 'audio' ? 'Audio Consultation' : 'Text Consultation'}</h4>
+                            <p class="history-meta">${date.toLocaleString()} • ${run.username || 'Unknown'}</p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="history-item-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Processing Time:</span>
+                            <span class="detail-value">${run.processing_time_seconds ? run.processing_time_seconds.toFixed(2) + 's' : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Recommendations:</span>
+                            <span class="detail-value">${run.recommendations ? JSON.parse(run.recommendations).length : 0}</span>
+                        </div>
+                        ${run.crm_pushed ? '<div class="detail-item"><span class="badge badge-info">CRM Pushed</span></div>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Error loading history:', error);
+        document.getElementById('history-list').innerHTML = `
+            <div class="error-state">
+                <p>Failed to load history. Please try again.</p>
+                <button class="btn btn-primary" onclick="loadHistory()">Retry</button>
+            </div>
+        `;
+    }
+}
+
+function viewHistoryDetail(runId) {
+    viewTranscription(runId);
 }
 
 // ========================================
@@ -1759,16 +1841,31 @@ async function generateVoiceSession() {
     try {
         updateVoiceStatus('connecting', 'Creating session...');
         
-        // Call backend to create session
-        const response = await fetch('/api/voice/create-session', {
+        // First try to load existing session
+        let response = await fetch('/api/voice/create-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                language: 'english'
+                language: 'english',
+                load_existing: true
             })
         });
+        
+        // If no existing session, create new one
+        if (!response.ok || !(await response.json()).loaded_existing) {
+            response = await fetch('/api/voice/create-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    language: 'english',
+                    load_existing: false
+                })
+            });
+        }
         
         const data = await response.json();
         

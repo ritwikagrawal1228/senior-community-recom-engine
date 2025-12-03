@@ -67,6 +67,13 @@
                     </svg>
                     <span>Voice Agent</span>
                 </a>
+                <a href="#" class="nav-link" data-view="history">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>History</span>
+                </a>
                 <a href="#" class="nav-link" data-view="help">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -136,34 +143,34 @@
 
             <!-- Audio Upload Tab -->
             <div id="audio-tab" class="tab-content active">
-                <div class="upload-area" id="upload-area">
-                    <input type="file" id="audio-file" accept=".m4a,.mp3,.wav,.ogg" hidden>
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <h3>Drop audio file here or click to browse</h3>
-                    <p>Supported formats: M4A, MP3, WAV, OGG (Max 50MB)</p>
-                    <button class="btn btn-secondary select-file-btn" type="button">
-                        Select File
-                    </button>
-                </div>
-                <div id="file-preview" class="file-preview" style="display:none;">
-                    <div class="file-info">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9 18V5l12-2v13M6 15h3M6 19h3M9 15v4M15 15h3M15 19h3M15 15v4"></path>
+                    <div class="upload-area" id="upload-area">
+                        <input type="file" id="audio-file" accept=".m4a,.mp3,.wav,.ogg" hidden>
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
                         </svg>
-                        <div class="file-details">
-                            <span id="file-name" class="file-name"></span>
-                            <span id="file-size" class="file-size"></span>
-                        </div>
-                        <button class="btn-icon" onclick="clearAudioFile()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
+                        <h3>Drop audio file here or click to browse</h3>
+                        <p>Supported formats: M4A, MP3, WAV, OGG (Max 50MB)</p>
+                    <button class="btn btn-secondary select-file-btn" type="button">
+                            Select File
                         </button>
+                    </div>
+                    <div id="file-preview" class="file-preview" style="display:none;">
+                        <div class="file-info">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M9 18V5l12-2v13M6 15h3M6 19h3M9 15v4M15 15h3M15 19h3M15 15v4"></path>
+                            </svg>
+                            <div class="file-details">
+                                <span id="file-name" class="file-name"></span>
+                                <span id="file-size" class="file-size"></span>
+                            </div>
+                            <button class="btn-icon" onclick="clearAudioFile()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
                     </div>
                 </div>
 
@@ -183,12 +190,12 @@
 
             <!-- Text Input Tab -->
             <div id="text-tab" class="tab-content">
-                <label for="text-input" class="form-label">Consultation Transcript</label>
-                <textarea
-                    id="text-input"
-                    class="form-textarea"
-                    rows="12"
-                    placeholder="Paste or type the consultation transcript here...
+                    <label for="text-input" class="form-label">Consultation Transcript</label>
+                    <textarea
+                        id="text-input"
+                        class="form-textarea"
+                        rows="12"
+                        placeholder="Paste or type the consultation transcript here...
 
 Example:
 Client: Hi, I'm looking for assisted living for my mother.
@@ -198,7 +205,7 @@ Agent: And when are you looking to move?
 Client: Within the next 2-3 months.
 Agent: What area are you looking at?
 Client: She lives in Rochester, ZIP 14618."
-                ></textarea>
+                    ></textarea>
 
                 <div class="form-actions">
                     <label class="checkbox-label">
@@ -455,6 +462,52 @@ Client: She lives in Rochester, ZIP 14618."
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- History View -->
+        <div id="history-view" class="view">
+            <div class="view-header">
+                <h1>📜 Consultation History</h1>
+                <p class="subtitle">View all past consultations and their results</p>
+            </div>
+
+            <div class="history-container">
+                <div class="card">
+                    <div class="history-filters">
+                        <div class="filter-group">
+                            <label for="history-type-filter">Type:</label>
+                            <select id="history-type-filter" class="filter-select">
+                                <option value="all">All Types</option>
+                                <option value="audio">Audio</option>
+                                <option value="text">Text</option>
+                                <option value="voice_agent">Voice Agent</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="history-status-filter">Status:</label>
+                            <select id="history-status-filter" class="filter-select">
+                                <option value="all">All Status</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadHistory()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="history-list" id="history-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Loading consultation history...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1129,7 +1182,7 @@ Client: She lives in Rochester, ZIP 14618."
             <span class="loading-spinner-icon">🤖</span>
         </div>
         <div class="loading-text-container">
-            <p id="loading-text">Processing consultation...</p>
+        <p id="loading-text">Processing consultation...</p>
             <p class="loading-subtitle">AI is analyzing and ranking communities</p>
         </div>
         <div class="loading-steps">
