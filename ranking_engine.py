@@ -484,6 +484,9 @@ class GeminiRanker(RankingDimension):
         # X-Title: Sets your app's display name (only needed if using localhost for tracking)
         self.app_url = os.getenv('APP_URL')  # Optional - only set if you want attribution
         self.app_name = os.getenv('APP_NAME')  # Optional - only set if you want attribution
+        
+        # Token usage tracking (populated after each API call)
+        self._last_token_usage = {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0}
 
     def _call_gemini(self, prompt: str, timeout: int = 60, max_retries: int = 3) -> Dict[str, Any]:
         """Call Gemini API via OpenRouter with structured JSON output, timeout, and retry logic"""
@@ -535,6 +538,14 @@ class GeminiRanker(RankingDimension):
                 
                 if not result_text:
                     raise ValueError("OpenRouter API returned empty response")
+                
+                # Extract REAL token usage from OpenRouter response
+                usage = result.get('usage', {})
+                self._last_token_usage = {
+                    'prompt_tokens': usage.get('prompt_tokens', 0),
+                    'completion_tokens': usage.get('completion_tokens', 0),
+                    'total_tokens': usage.get('total_tokens', 0)
+                }
                 
                 return json.loads(result_text)
             except requests.exceptions.HTTPError as e:
@@ -1036,6 +1047,26 @@ class MultiLevelRankingEngine:
         except Exception as e:
             print(f"  [ERROR] holistic ranking failed: {e}")
             all_rankings['holistic'] = self._fallback_ranking(top_candidates, 'holistic')
+        
+        # Aggregate token usage from AI rankers
+        self._last_total_tokens = {
+            'prompt_tokens': 0,
+            'completion_tokens': 0,
+            'total_tokens': 0
+        }
+        for ranker_name in ['availability', 'amenity']:
+            ranker = self.rankers.get(ranker_name)
+            if ranker and hasattr(ranker, '_last_token_usage'):
+                self._last_total_tokens['prompt_tokens'] += ranker._last_token_usage.get('prompt_tokens', 0)
+                self._last_total_tokens['completion_tokens'] += ranker._last_token_usage.get('completion_tokens', 0)
+                self._last_total_tokens['total_tokens'] += ranker._last_token_usage.get('total_tokens', 0)
+        # Add holistic ranker tokens
+        if hasattr(holistic_ranker, '_last_token_usage'):
+            self._last_total_tokens['prompt_tokens'] += holistic_ranker._last_token_usage.get('prompt_tokens', 0)
+            self._last_total_tokens['completion_tokens'] += holistic_ranker._last_token_usage.get('completion_tokens', 0)
+            self._last_total_tokens['total_tokens'] += holistic_ranker._last_token_usage.get('total_tokens', 0)
+        
+        print(f"[TOKENS] AI Ranking total: {self._last_total_tokens['total_tokens']} tokens")
 
         # Step 4: Aggregate ranks using weighted Borda count ONLY for top candidates
         print("[PHASE 4] Aggregating ranks using weighted Borda count...")

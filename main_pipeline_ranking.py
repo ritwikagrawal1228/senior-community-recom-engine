@@ -108,10 +108,13 @@ class RankingBasedRecommendationSystem:
         phase1_time = time.time() - phase1_start
         metrics['timings']['phase1_extraction'] = phase1_time
         metrics['api_calls'] += 1
-        # Estimate tokens for audio extraction (rough: assume ~5 min audio = ~1500 words = ~2000 tokens)
-        metrics['token_counts']['extraction_input'] = 2000  # Estimated audio tokens
-        metrics['token_counts']['extraction_output'] = len(str(client_data)) // 4
+        
+        # Extract REAL token usage from OpenRouter response (attached to result)
+        extraction_usage = client_data.pop('_token_usage', {})
+        metrics['token_counts']['extraction_input'] = extraction_usage.get('prompt_tokens', 0)
+        metrics['token_counts']['extraction_output'] = extraction_usage.get('completion_tokens', 0)
         print(f"[TIMING] Phase 1: {phase1_time:.2f}s")
+        print(f"[TOKENS] Extraction: {extraction_usage.get('total_tokens', 0)} tokens (prompt: {extraction_usage.get('prompt_tokens', 0)}, completion: {extraction_usage.get('completion_tokens', 0)})")
 
         # Convert to ClientRequirements object
         client_req = self._convert_to_client_requirements(client_data)
@@ -141,10 +144,11 @@ class RankingBasedRecommendationSystem:
         phase3_time = time.time() - phase3_start
         metrics['timings']['phase3_ranking'] = phase3_time
         metrics['api_calls'] += 3  # Availability, Amenity, Holistic AI calls
-        # Estimate tokens for ranking (3 AI calls)
-        num_communities = len(filtered_communities)
-        metrics['token_counts']['ranking_input'] = num_communities * 200  # ~200 tokens per community
-        metrics['token_counts']['ranking_output'] = num_communities * 50  # ~50 tokens output per community
+        
+        # Extract REAL token usage from ranking engine (aggregated from 3 AI calls)
+        ranking_usage = getattr(self.ranking_engine, '_last_total_tokens', {})
+        metrics['token_counts']['ranking_input'] = ranking_usage.get('prompt_tokens', 0)
+        metrics['token_counts']['ranking_output'] = ranking_usage.get('completion_tokens', 0)
         print(f"[TIMING] Phase 3: {phase3_time:.2f}s")
 
         # Step 4: Generate output
@@ -259,10 +263,13 @@ class RankingBasedRecommendationSystem:
         phase1_time = time.time() - phase1_start
         metrics['timings']['phase1_extraction'] = phase1_time
         metrics['api_calls'] += 1
-        # Estimate tokens for extraction (rough: ~1 token per 4 chars)
-        metrics['token_counts']['extraction_input'] = len(text) // 4
-        metrics['token_counts']['extraction_output'] = len(str(client_data)) // 4
+        
+        # Extract REAL token usage from OpenRouter response (attached to result)
+        extraction_usage = client_data.pop('_token_usage', {})
+        metrics['token_counts']['extraction_input'] = extraction_usage.get('prompt_tokens', 0)
+        metrics['token_counts']['extraction_output'] = extraction_usage.get('completion_tokens', 0)
         print(f"[TIMING] Phase 1: {phase1_time:.2f}s")
+        print(f"[TOKENS] Extraction: {extraction_usage.get('total_tokens', 0)} tokens (prompt: {extraction_usage.get('prompt_tokens', 0)}, completion: {extraction_usage.get('completion_tokens', 0)})")
 
         # Convert to ClientRequirements object
         client_req = self._convert_to_client_requirements(client_data)
@@ -292,10 +299,11 @@ class RankingBasedRecommendationSystem:
         phase3_time = time.time() - phase3_start
         metrics['timings']['phase3_ranking'] = phase3_time
         metrics['api_calls'] += 3  # Availability, Amenity, Holistic AI calls
-        # Estimate tokens for ranking (3 AI calls)
-        num_communities = len(filtered_communities)
-        metrics['token_counts']['ranking_input'] = num_communities * 200  # ~200 tokens per community
-        metrics['token_counts']['ranking_output'] = num_communities * 50  # ~50 tokens output per community
+        
+        # Extract REAL token usage from ranking engine (aggregated from 3 AI calls)
+        ranking_usage = getattr(self.ranking_engine, '_last_total_tokens', {})
+        metrics['token_counts']['ranking_input'] = ranking_usage.get('prompt_tokens', 0)
+        metrics['token_counts']['ranking_output'] = ranking_usage.get('completion_tokens', 0)
         print(f"[TIMING] Phase 3: {phase3_time:.2f}s")
 
         # Step 4: Generate output

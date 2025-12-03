@@ -125,6 +125,15 @@ class GeminiAudioProcessor:
             if not result_text:
                 raise ValueError("OpenRouter API returned empty response")
             
+            # Extract REAL token usage from OpenRouter response
+            usage = response.get('usage', {})
+            token_usage = {
+                'prompt_tokens': usage.get('prompt_tokens', 0),
+                'completion_tokens': usage.get('completion_tokens', 0),
+                'total_tokens': usage.get('total_tokens', 0)
+            }
+            logger.info(f"Audio extraction token usage: {token_usage}")
+            
             # Clean up markdown code blocks if present
             if result_text.strip().startswith('```'):
                 result_text = result_text.strip()
@@ -144,6 +153,9 @@ class GeminiAudioProcessor:
             else:
                 client_requirements = parsed
 
+            # Attach token usage to result
+            client_requirements['_token_usage'] = token_usage
+            
             return client_requirements
 
         except Exception as e:
@@ -187,6 +199,15 @@ class GeminiAudioProcessor:
             if not result_text:
                 raise ValueError("OpenRouter API returned empty response")
             
+            # Extract REAL token usage from OpenRouter response
+            usage = response.get('usage', {})
+            token_usage = {
+                'prompt_tokens': usage.get('prompt_tokens', 0),
+                'completion_tokens': usage.get('completion_tokens', 0),
+                'total_tokens': usage.get('total_tokens', 0)
+            }
+            logger.info(f"Text extraction token usage: {token_usage}")
+            
             parsed = json.loads(result_text)
 
             # Handle if Gemini returns a list instead of dict
@@ -195,6 +216,9 @@ class GeminiAudioProcessor:
             else:
                 client_requirements = parsed
 
+            # Attach token usage to result
+            client_requirements['_token_usage'] = token_usage
+            
             return client_requirements
 
         except Exception as e:
