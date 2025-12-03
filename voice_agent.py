@@ -193,10 +193,6 @@ class GeminiVoiceAgent:
         self.audio_in_queue = None
         self.audio_out_queue = None
         
-        # Tasks
-        self._receive_task = None
-        self._send_task = None
-        
         # Initialize client
         self.client = genai.Client(
             http_options={"api_version": "v1alpha"},
