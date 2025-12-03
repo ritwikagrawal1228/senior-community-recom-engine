@@ -920,22 +920,24 @@
                 const name = rec.community_name || rec.name || `Community #${rec.community_id || idx + 1}`;
                 const score = rec.final_score || rec.combined_rank_score || rec.score || 0;
                 
-                // Get city from community_data (full database record)
-                const communityData = rec.community_data || {};
-                const city = communityData.City || communityData.city || rec.city || 'Location N/A';
+                // Extract from nested structure (same as export_to_crm_format and regular results page)
+                const km = rec.key_metrics || {};
+                const cd = rec.community_data || {}; // Full community data from database (Excel column names)
                 
-                // Get care level from community_data
-                const careLevel = communityData.CareLevel || communityData.care_level || rec.care_level || 'Assisted Living';
+                // Get city from community_data (Excel column: "City")
+                const city = cd['City'] || cd.City || cd.city || rec.city || 'Location N/A';
                 
-                // Get price from key_metrics (structured metrics)
-                const keyMetrics = rec.key_metrics || {};
-                const price = keyMetrics.monthly_fee || rec.monthly_fee || rec.base_price || communityData.MonthlyFee || communityData.monthly_fee || 'N/A';
+                // Get care level from community_data (Excel column: "Type of Service")
+                const careLevel = cd['Type of Service'] || cd.CareLevel || cd.care_level || rec.care_level || 'Assisted Living';
                 
-                // Get additional details from community_data
-                const zipCode = communityData.ZipCode || communityData.zip_code || '';
-                const state = communityData.State || communityData.state || '';
-                const address = communityData.Address || communityData.address || '';
-                const distance = keyMetrics.distance_miles || rec.distance_miles || '';
+                // Get price from key_metrics (structured metrics) or community_data (Excel column: "Monthly Fee")
+                const price = km.monthly_fee || cd['Monthly Fee'] || rec.monthly_fee || rec.base_price || 'N/A';
+                
+                // Get additional details from community_data (Excel column names)
+                const zipCode = cd['ZIP'] || cd.ZipCode || cd.zip_code || '';
+                const state = cd['State'] || cd.State || cd.state || '';
+                const address = cd['Address'] || cd.Address || cd.address || '';
+                const distance = km.distance_miles || rec.distance_miles || '';
                 
                 return `
                     <div class="rec-card">
