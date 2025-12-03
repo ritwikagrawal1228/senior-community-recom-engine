@@ -647,6 +647,7 @@ function clearResults() {
 
 async function loadHistory() {
     try {
+        console.log('Loading history...');
         const typeFilter = document.getElementById('history-type-filter')?.value || 'all';
         const statusFilter = document.getElementById('history-status-filter')?.value || 'all';
         
@@ -654,10 +655,15 @@ async function loadHistory() {
         if (typeFilter !== 'all') params.append('type', typeFilter);
         if (statusFilter !== 'all') params.append('status', statusFilter);
         
+        console.log('Fetching from /api/run-logs with params:', params.toString());
         const response = await fetch(`/api/run-logs?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to load history');
+        if (!response.ok) {
+            console.error('History API error:', response.status, response.statusText);
+            throw new Error('Failed to load history');
+        }
         
         const data = await response.json();
+        console.log('History API response:', data);
         const historyList = document.getElementById('history-list');
         
         if (!data.runs || data.runs.length === 0) {
@@ -698,7 +704,7 @@ async function loadHistory() {
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Recommendations:</span>
-                            <span class="detail-value">${run.recommendations ? JSON.parse(run.recommendations).length : 0}</span>
+                            <span class="detail-value">${run.recommendations ? (Array.isArray(run.recommendations) ? run.recommendations.length : JSON.parse(run.recommendations).length) : 0}</span>
                         </div>
                         ${run.crm_pushed ? '<div class="detail-item"><span class="badge badge-info">CRM Pushed</span></div>' : ''}
                     </div>
