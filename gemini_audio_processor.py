@@ -233,7 +233,7 @@ IMPORTANT DEFINITIONS:
 CRITICAL RULES:
 1. For "care_level", use EXACTLY one of the three options listed
 2. For "timeline", use EXACTLY one of: "immediate", "near-term", or "flexible"
-3. For "budget", extract ONLY the numeric value (no $, no commas)
+3. For "budget", extract ONLY the numeric value (no $, no commas). If there is not budget mentioned set 50000 as the budget. 
 4. For "location_preference" (IMPORTANT - READ CAREFULLY):
    - **PREFERRED**: Extract 5-digit ZIP code if mentioned (e.g., "14534", "14611", "14618")
    - Look for phrases like "ZIP 14534", "in 14611", "near 14618", "close to ZIP 14534"
