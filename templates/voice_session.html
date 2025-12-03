@@ -517,6 +517,11 @@
         let smoothedOutputVolume = 0;
         let outputAnalyser = null;
         
+        // Background Music State
+        let processingMusicOscillators = [];
+        let processingMusicGain = null;
+        let isMusicPlaying = false;
+        
         // UI Elements
         const btnConnect = document.getElementById('btn-connect');
         const btnDisconnect = document.getElementById('btn-disconnect');
@@ -778,6 +783,126 @@
         smoothVolume();
 
         // ==========================================
+        // BACKGROUND PROCESSING MUSIC
+        // ==========================================
+        
+        function startProcessingMusic() {
+            if (isMusicPlaying || !audioContext) return;
+            
+            try {
+                // Create gain node for volume control
+                processingMusicGain = audioContext.createGain();
+                processingMusicGain.gain.value = 0.15; // Low volume, subtle background
+                processingMusicGain.connect(audioContext.destination);
+                
+                // Create a pleasant, calming melody using multiple oscillators
+                // Simple chord progression: C major (C-E-G)
+                const frequencies = [261.63, 329.63, 392.00]; // C4, E4, G4
+                const noteDurations = [2, 2.5, 3]; // Different durations for variation
+                
+                processingMusicOscillators = frequencies.map((freq, idx) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.type = 'sine'; // Smooth sine wave
+                    oscillator.frequency.value = freq;
+                    
+                    // Create a gentle fade in/out pattern
+                    const now = audioContext.currentTime;
+                    const duration = noteDurations[idx];
+                    
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.1, now + 0.5); // Fade in
+                    gainNode.gain.linearRampToValueAtTime(0.1, now + duration - 0.5);
+                    gainNode.gain.linearRampToValueAtTime(0, now + duration); // Fade out
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(processingMusicGain);
+                    
+                    oscillator.start(now);
+                    oscillator.stop(now + duration);
+                    
+                    // Restart oscillator when it ends (loop)
+                    oscillator.onended = () => {
+                        if (isMusicPlaying && audioContext) {
+                            const newOsc = audioContext.createOscillator();
+                            const newGain = audioContext.createGain();
+                            
+                            newOsc.type = 'sine';
+                            newOsc.frequency.value = freq;
+                            
+                            const newNow = audioContext.currentTime;
+                            newGain.gain.setValueAtTime(0, newNow);
+                            newGain.gain.linearRampToValueAtTime(0.1, newNow + 0.5);
+                            newGain.gain.linearRampToValueAtTime(0.1, newNow + duration - 0.5);
+                            newGain.gain.linearRampToValueAtTime(0, newNow + duration);
+                            
+                            newOsc.connect(newGain);
+                            newGain.connect(processingMusicGain);
+                            
+                            newOsc.start(newNow);
+                            newOsc.stop(newNow + duration);
+                            
+                            // Replace in array
+                            const index = processingMusicOscillators.indexOf(oscillator);
+                            if (index !== -1) {
+                                processingMusicOscillators[index] = newOsc;
+                            }
+                            
+                            newOsc.onended = oscillator.onended; // Keep looping
+                        }
+                    };
+                    
+                    return oscillator;
+                });
+                
+                isMusicPlaying = true;
+                console.log('🎵 Started processing music');
+            } catch (e) {
+                console.error('Error starting processing music:', e);
+            }
+        }
+        
+        function stopProcessingMusic() {
+            if (!isMusicPlaying) return;
+            
+            try {
+                // Fade out smoothly
+                if (processingMusicGain) {
+                    const now = audioContext ? audioContext.currentTime : 0;
+                    processingMusicGain.gain.cancelScheduledValues(now);
+                    processingMusicGain.gain.setValueAtTime(processingMusicGain.gain.value, now);
+                    processingMusicGain.gain.linearRampToValueAtTime(0, now + 0.5);
+                    
+                    // Stop oscillators after fade out
+                    setTimeout(() => {
+                        processingMusicOscillators.forEach(osc => {
+                            try {
+                                osc.stop();
+                            } catch (e) {
+                                // Ignore errors
+                            }
+                        });
+                        processingMusicOscillators = [];
+                        
+                        if (processingMusicGain) {
+                            processingMusicGain.disconnect();
+                            processingMusicGain = null;
+                        }
+                        
+                        isMusicPlaying = false;
+                        console.log('🎵 Stopped processing music');
+                    }, 600);
+                } else {
+                    isMusicPlaying = false;
+                }
+            } catch (e) {
+                console.error('Error stopping processing music:', e);
+                isMusicPlaying = false;
+            }
+        }
+
+        // ==========================================
         // CONNECTION & UI LOGIC
         // ==========================================
 
@@ -801,6 +926,7 @@
                 subStatus.innerText = "Connect to start a voice consultation.";
                 stopVisualizer();
                 stopInputStream();
+                stopProcessingMusic();
             } else if (state === 'connecting') {
                 btnConnect.disabled = true;
                 btnConnect.innerHTML = '<span class="animate-spin" style="display:inline-block; width:1rem; height:1rem; border:2px solid white; border-top-color:transparent; border-radius:50%;"></span> Connecting...';
@@ -875,7 +1001,21 @@
             smoothedOutputVolume = 0;
         });
         
+        socket.on('voice_status', (data) => {
+            // Handle status updates
+            if (data.status === 'searching' || data.status === 'processing') {
+                startProcessingMusic();
+                if (mainStatus) mainStatus.innerText = data.message || 'Processing your request...';
+                if (subStatus) subStatus.innerText = 'This may take a moment, please wait...';
+            } else if (data.status === 'results' || data.status === 'complete') {
+                stopProcessingMusic();
+            } else {
+                stopProcessingMusic();
+            }
+        });
+        
         socket.on('voice_recommendations', (data) => {
+            stopProcessingMusic();
             showRecommendations(data.recommendations);
         });
 
