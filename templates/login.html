@@ -3,37 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI-Powered Senior Living Placement Platform - Streamline your client consultations and community matching">
-    <title>SeniorMatch AI - Intelligent Senior Living Placement</title>
+    <meta name="description" content="AI-Powered Senior Living Placement Platform - 10x faster client matching with intelligent voice AI">
+    <title>SeniorMatch AI - Transform Senior Living Placements</title>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&family=SF+Pro+Text:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* ========================================
            iOS 26 Liquid Glass Design System
+           Enhanced Landing Page 2025
            ======================================== */
         
         :root {
-            /* iOS 26 Color Palette */
-            --ios-blue: #007AFF;
-            --ios-indigo: #5856D6;
-            --ios-purple: #AF52DE;
-            --ios-teal: #5AC8FA;
-            --ios-green: #34C759;
-            --ios-orange: #FF9500;
-            --ios-red: #FF3B30;
+            /* iOS 26 Color Palette - Brighter for Dark Mode */
+            --ios-blue: #0A84FF;
+            --ios-indigo: #5E5CE6;
+            --ios-purple: #BF5AF2;
+            --ios-teal: #64D2FF;
+            --ios-green: #30D158;
+            --ios-orange: #FF9F0A;
+            --ios-red: #FF453A;
+            --ios-cyan: #00C7BE;
             
-            /* Liquid Glass Variables */
-            --liquid-glass-bg: rgba(255, 255, 255, 0.72);
-            --liquid-glass-border: rgba(255, 255, 255, 0.5);
-            --liquid-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            /* Dark Mode Liquid Glass Variables */
+            --liquid-glass-bg: rgba(30, 30, 35, 0.75);
+            --liquid-glass-border: rgba(255, 255, 255, 0.1);
+            --liquid-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             --liquid-glass-blur: 40px;
             --liquid-glass-saturation: 180%;
             
-            /* Gradient Orbs */
-            --orb-1: rgba(0, 122, 255, 0.4);
-            --orb-2: rgba(88, 86, 214, 0.35);
-            --orb-3: rgba(90, 200, 250, 0.3);
-            --orb-4: rgba(52, 199, 89, 0.25);
-            --orb-5: rgba(175, 82, 222, 0.3);
+            /* Dark Mode Gradient Orbs - More Vibrant */
+            --orb-1: rgba(10, 132, 255, 0.5);
+            --orb-2: rgba(94, 92, 230, 0.45);
+            --orb-3: rgba(100, 210, 255, 0.35);
+            --orb-4: rgba(48, 209, 88, 0.3);
+            --orb-5: rgba(191, 90, 242, 0.4);
+            
+            /* Dark Mode Text Colors */
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-tertiary: rgba(255, 255, 255, 0.5);
             
             /* Typography */
             --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -47,8 +54,9 @@
             --space-xl: 32px;
             --space-2xl: 48px;
             --space-3xl: 64px;
+            --space-4xl: 96px;
             
-            /* Radius - iOS 26 uses more rounded corners */
+            /* Radius */
             --radius-sm: 12px;
             --radius-md: 16px;
             --radius-lg: 24px;
@@ -68,9 +76,9 @@
 
         body {
             font-family: var(--font-text);
-            background: linear-gradient(180deg, #F5F7FA 0%, #E8ECF2 100%);
+            background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
             min-height: 100vh;
-            color: #1D1D1F;
+            color: var(--text-primary);
             overflow-x: hidden;
             line-height: 1.5;
         }
@@ -200,7 +208,7 @@
             font-family: var(--font-display);
             font-weight: 700;
             font-size: 1.1rem;
-            color: #1D1D1F;
+            color: var(--text-primary);
         }
 
         .nav-logo-icon {
@@ -227,7 +235,7 @@
         .nav-link {
             font-size: 0.9rem;
             font-weight: 500;
-            color: #1D1D1F;
+            color: var(--text-secondary);
             text-decoration: none;
             padding: var(--space-sm) var(--space-md);
             border-radius: var(--radius-full);
@@ -235,11 +243,12 @@
         }
 
         .nav-link:hover {
-            background: rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
         }
 
         /* ========================================
-           Hero Section
+           Hero Section - Enhanced
            ======================================== */
         
         .hero {
@@ -247,6 +256,7 @@
             display: flex;
             align-items: center;
             padding: var(--space-3xl) var(--space-xl);
+            padding-top: 100px;
             position: relative;
             z-index: 1;
         }
@@ -255,7 +265,7 @@
             max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: 1fr 440px;
             gap: var(--space-3xl);
             align-items: center;
             width: 100%;
@@ -280,15 +290,21 @@
             display: inline-flex;
             align-items: center;
             gap: var(--space-sm);
-            background: var(--liquid-glass-bg);
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(88, 86, 214, 0.1));
             backdrop-filter: blur(20px);
             padding: var(--space-sm) var(--space-md);
             border-radius: var(--radius-full);
             font-size: 0.85rem;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--ios-blue);
-            border: 1px solid var(--liquid-glass-border);
+            border: 1px solid rgba(0, 122, 255, 0.2);
             margin-bottom: var(--space-lg);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.3); }
+            50% { box-shadow: 0 0 20px 5px rgba(0, 122, 255, 0.1); }
         }
 
         .hero-badge svg {
@@ -298,55 +314,79 @@
 
         .hero-title {
             font-family: var(--font-display);
-            font-size: 4rem;
-            font-weight: 700;
-            line-height: 1.1;
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1.05;
             letter-spacing: -0.03em;
-            color: #1D1D1F;
+            color: var(--text-primary);
             margin-bottom: var(--space-lg);
         }
 
         .hero-title .gradient-text {
-            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 50%, var(--ios-purple) 100%);
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 40%, var(--ios-purple) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .hero-subtitle {
-            font-size: 1.25rem;
-            color: #6E6E73;
-            max-width: 540px;
+            font-size: 1.35rem;
+            color: var(--text-secondary);
+            max-width: 560px;
             margin-bottom: var(--space-xl);
             line-height: 1.6;
         }
 
+        /* Hero Stats - Enhanced with Animation */
         .hero-stats {
             display: flex;
             gap: var(--space-xl);
             margin-top: var(--space-2xl);
+            padding: var(--space-lg);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: var(--liquid-glass-shadow);
         }
 
         .hero-stat {
-            text-align: left;
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .hero-stat:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 40px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .hero-stat-value {
             font-family: var(--font-display);
             font-size: 2.5rem;
-            font-weight: 700;
-            color: #1D1D1F;
+            font-weight: 800;
             line-height: 1;
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-indigo) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .hero-stat-label {
             font-size: 0.9rem;
-            color: #6E6E73;
+            color: var(--text-secondary);
             margin-top: var(--space-xs);
+            font-weight: 500;
         }
 
         /* ========================================
-           Login Card - Liquid Glass
+           Login Card - Liquid Glass Enhanced
            ======================================== */
         
         .login-card {
@@ -361,6 +401,26 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.9),
                 inset 0 -1px 0 rgba(255, 255, 255, 0.4);
             animation: fadeInRight 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--ios-blue), var(--ios-indigo), var(--ios-purple), var(--ios-teal));
+            background-size: 300% 100%;
+            animation: shimmer 3s linear infinite;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
         }
 
         @keyframes fadeInRight {
@@ -379,16 +439,34 @@
             margin-bottom: var(--space-xl);
         }
 
+        .login-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo));
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-md);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+        }
+
+        .login-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
         .login-header h2 {
             font-family: var(--font-display);
             font-size: 1.75rem;
             font-weight: 700;
-            color: #1D1D1F;
+            color: var(--text-primary);
             margin-bottom: var(--space-sm);
         }
 
         .login-header p {
-            color: #6E6E73;
+            color: var(--text-secondary);
             font-size: 0.95rem;
         }
 
@@ -400,31 +478,31 @@
             display: block;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #1D1D1F;
+            color: var(--text-primary);
             margin-bottom: var(--space-sm);
         }
 
         .form-input {
             width: 100%;
             padding: var(--space-md);
-            background: rgba(255, 255, 255, 0.6);
-            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
             border-radius: var(--radius-md);
             font-size: 1rem;
             font-family: inherit;
-            color: #1D1D1F;
+            color: var(--text-primary);
             transition: all 0.2s ease;
         }
 
         .form-input::placeholder {
-            color: #8E8E93;
+            color: var(--text-tertiary);
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--ios-blue);
-            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
-            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+            background: rgba(0, 0, 0, 0.4);
         }
 
         .login-btn {
@@ -442,6 +520,15 @@
             box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+        }
+
+        .login-btn svg {
+            width: 20px;
+            height: 20px;
         }
 
         .login-btn::before {
@@ -491,9 +578,9 @@
         .credentials-box {
             margin-top: var(--space-xl);
             padding: var(--space-md);
-            background: rgba(0, 122, 255, 0.05);
+            background: rgba(10, 132, 255, 0.1);
             border-radius: var(--radius-md);
-            border: 1px solid rgba(0, 122, 255, 0.1);
+            border: 1px solid rgba(10, 132, 255, 0.2);
         }
 
         .credentials-box h4 {
@@ -507,22 +594,440 @@
 
         .credentials-box p {
             font-size: 0.85rem;
-            color: #6E6E73;
+            color: var(--text-secondary);
             font-family: 'SF Mono', Monaco, monospace;
             margin-bottom: var(--space-xs);
         }
 
         .credentials-box code {
-            color: #1D1D1F;
+            color: var(--ios-cyan);
             font-weight: 600;
         }
 
         /* ========================================
-           Features Section
+           Flagship Stats Section - NEW
+           ======================================== */
+        
+        .flagship-stats {
+            padding: var(--space-4xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 122, 255, 0.03) 50%, transparent 100%);
+        }
+
+        .flagship-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .flagship-title {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: var(--space-md);
+            letter-spacing: -0.02em;
+        }
+
+        .flagship-title .highlight {
+            background: linear-gradient(135deg, var(--ios-green) 0%, var(--ios-teal) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .flagship-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto var(--space-3xl);
+        }
+
+        .flagship-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-xl);
+        }
+
+        .flagship-card {
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur));
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: var(--liquid-glass-shadow);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .flagship-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+        }
+
+        .flagship-value {
+            font-family: var(--font-display);
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: var(--space-sm);
+        }
+
+        .flagship-card:nth-child(1) .flagship-value {
+            background: linear-gradient(135deg, var(--ios-green), var(--ios-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .flagship-card:nth-child(2) .flagship-value {
+            background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .flagship-card:nth-child(3) .flagship-value {
+            background: linear-gradient(135deg, var(--ios-purple), var(--ios-indigo));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .flagship-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .flagship-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           Voice Agent Showcase - NEW
+           ======================================== */
+        
+        .voice-showcase {
+            padding: var(--space-4xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .voice-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3xl);
+            align-items: center;
+        }
+
+        .voice-content {
+            animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .voice-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: linear-gradient(135deg, rgba(52, 199, 89, 0.1), rgba(0, 199, 190, 0.1));
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--ios-green);
+            border: 1px solid rgba(52, 199, 89, 0.2);
+            margin-bottom: var(--space-lg);
+        }
+
+        .voice-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: var(--space-lg);
+            line-height: 1.1;
+            color: var(--text-primary);
+        }
+
+        .voice-desc {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-xl);
+            line-height: 1.7;
+        }
+
+        .voice-features {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .voice-feature {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--liquid-glass-border);
+        }
+
+        .voice-feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .voice-feature-icon.green { background: linear-gradient(135deg, var(--ios-green), var(--ios-cyan)); }
+        .voice-feature-icon.blue { background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo)); }
+        .voice-feature-icon.purple { background: linear-gradient(135deg, var(--ios-purple), var(--ios-indigo)); }
+
+        .voice-feature-icon svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        .voice-feature-text {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Voice Visual - Animated Globe */
+        .voice-visual {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-globe {
+            width: 400px;
+            height: 400px;
+            position: relative;
+        }
+
+        .globe-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid;
+            animation: globePulse 3s ease-in-out infinite;
+        }
+
+        .globe-ring:nth-child(1) {
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            border-color: rgba(52, 199, 89, 0.2);
+        }
+
+        .globe-ring:nth-child(2) {
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            border-color: rgba(0, 122, 255, 0.25);
+            animation-delay: 0.5s;
+        }
+
+        .globe-ring:nth-child(3) {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            border-color: rgba(88, 86, 214, 0.3);
+            animation-delay: 1s;
+        }
+
+        .globe-ring:nth-child(4) {
+            width: 40%;
+            height: 40%;
+            top: 30%;
+            left: 30%;
+            border-color: rgba(175, 82, 222, 0.35);
+            animation-delay: 1.5s;
+        }
+
+        .globe-center {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, var(--ios-green), var(--ios-teal), var(--ios-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 60px rgba(52, 199, 89, 0.4);
+            animation: globeGlow 2s ease-in-out infinite alternate;
+        }
+
+        .globe-center svg {
+            width: 48px;
+            height: 48px;
+            color: white;
+        }
+
+        @keyframes globePulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+
+        @keyframes globeGlow {
+            0% { box-shadow: 0 0 40px rgba(52, 199, 89, 0.3); }
+            100% { box-shadow: 0 0 80px rgba(52, 199, 89, 0.5); }
+        }
+
+        /* ========================================
+           8 Dimensions Section - NEW
+           ======================================== */
+        
+        .dimensions {
+            padding: var(--space-4xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .dimensions-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .dimensions-header {
+            text-align: center;
+            margin-bottom: var(--space-3xl);
+        }
+
+        .dimensions-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: linear-gradient(135deg, rgba(88, 86, 214, 0.1), rgba(175, 82, 222, 0.1));
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--ios-indigo);
+            border: 1px solid rgba(88, 86, 214, 0.2);
+            margin-bottom: var(--space-md);
+        }
+
+        .dimensions-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: var(--space-md);
+            color: var(--text-primary);
+        }
+
+        .dimensions-subtitle {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .dimensions-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-lg);
+        }
+
+        .dimension-card {
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur));
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            border: 1px solid var(--liquid-glass-border);
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dimension-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dimension-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .dimension-card:hover::before {
+            opacity: 1;
+        }
+
+        .dimension-card:nth-child(1)::before { background: linear-gradient(90deg, var(--ios-blue), var(--ios-indigo)); }
+        .dimension-card:nth-child(2)::before { background: linear-gradient(90deg, var(--ios-green), var(--ios-teal)); }
+        .dimension-card:nth-child(3)::before { background: linear-gradient(90deg, var(--ios-orange), var(--ios-red)); }
+        .dimension-card:nth-child(4)::before { background: linear-gradient(90deg, var(--ios-purple), var(--ios-indigo)); }
+        .dimension-card:nth-child(5)::before { background: linear-gradient(90deg, var(--ios-teal), var(--ios-blue)); }
+        .dimension-card:nth-child(6)::before { background: linear-gradient(90deg, var(--ios-indigo), var(--ios-purple)); }
+        .dimension-card:nth-child(7)::before { background: linear-gradient(90deg, var(--ios-cyan), var(--ios-green)); }
+        .dimension-card:nth-child(8)::before { background: linear-gradient(90deg, var(--ios-blue), var(--ios-purple)); }
+
+        .dimension-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-md);
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .dimension-icon.d1 { background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo)); }
+        .dimension-icon.d2 { background: linear-gradient(135deg, var(--ios-green), var(--ios-teal)); }
+        .dimension-icon.d3 { background: linear-gradient(135deg, var(--ios-orange), var(--ios-red)); }
+        .dimension-icon.d4 { background: linear-gradient(135deg, var(--ios-purple), var(--ios-indigo)); }
+        .dimension-icon.d5 { background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue)); }
+        .dimension-icon.d6 { background: linear-gradient(135deg, var(--ios-indigo), var(--ios-purple)); }
+        .dimension-icon.d7 { background: linear-gradient(135deg, var(--ios-cyan), var(--ios-green)); }
+        .dimension-icon.d8 { background: linear-gradient(135deg, var(--ios-blue), var(--ios-purple)); }
+
+        .dimension-title {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .dimension-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           Features Section - Enhanced
            ======================================== */
         
         .features {
-            padding: var(--space-3xl) var(--space-xl);
+            padding: var(--space-4xl) var(--space-xl);
             position: relative;
             z-index: 1;
         }
@@ -556,14 +1061,14 @@
             font-family: var(--font-display);
             font-size: 3rem;
             font-weight: 700;
-            color: #1D1D1F;
+            color: var(--text-primary);
             margin-bottom: var(--space-md);
             letter-spacing: -0.02em;
         }
 
         .section-subtitle {
             font-size: 1.15rem;
-            color: #6E6E73;
+            color: var(--text-secondary);
             max-width: 600px;
             margin: 0 auto;
         }
@@ -602,8 +1107,8 @@
         .feature-card:hover {
             transform: translateY(-8px);
             box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 1);
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .feature-card:hover::before {
@@ -637,81 +1142,391 @@
             font-family: var(--font-display);
             font-size: 1.25rem;
             font-weight: 700;
-            color: #1D1D1F;
+            color: var(--text-primary);
             margin-bottom: var(--space-sm);
         }
 
         .feature-desc {
             font-size: 0.95rem;
-            color: #6E6E73;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
         /* ========================================
-           How It Works Section
+           How It Works - Horizontal Pipeline Flow
            ======================================== */
         
         .how-it-works {
-            padding: var(--space-3xl) var(--space-xl);
+            padding: var(--space-4xl) var(--space-xl);
             position: relative;
             z-index: 1;
+            overflow-x: auto;
         }
 
-        .steps-container {
-            max-width: 1000px;
+        .pipeline-container {
+            max-width: 1400px;
             margin: 0 auto;
+        }
+
+        /* Main Pipeline Flow */
+        .pipeline-flow {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 0;
+            padding: var(--space-xl) 0;
+            min-width: max-content;
+        }
+
+        /* Individual Pipeline Step */
+        .pipeline-step {
             display: flex;
             flex-direction: column;
-            gap: var(--space-xl);
-        }
-
-        .step {
-            display: flex;
             align-items: center;
-            gap: var(--space-xl);
-            background: var(--liquid-glass-bg);
-            backdrop-filter: blur(var(--liquid-glass-blur));
-            border-radius: var(--radius-xl);
-            padding: var(--space-xl);
-            border: 1px solid var(--liquid-glass-border);
-            box-shadow: var(--liquid-glass-shadow);
+            text-align: center;
+            position: relative;
+            flex: 1;
+            min-width: 160px;
+            max-width: 200px;
         }
 
-        .step:nth-child(even) {
-            flex-direction: row-reverse;
-        }
-
-        .step-number {
+        /* Step Icon Container */
+        .pipeline-icon {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo));
             border-radius: var(--radius-lg);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 800;
             color: white;
-            flex-shrink: 0;
-            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+            font-size: 2rem;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .step-content {
-            flex: 1;
+        .pipeline-step:hover .pipeline-icon {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
         }
 
-        .step-title {
+        .pipeline-icon svg {
+            width: 36px;
+            height: 36px;
+        }
+
+        .pipeline-icon.input { background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo)); }
+        .pipeline-icon.extract { background: linear-gradient(135deg, var(--ios-indigo), var(--ios-purple)); }
+        .pipeline-icon.filter { background: linear-gradient(135deg, var(--ios-orange), var(--ios-red)); }
+        .pipeline-icon.rank { background: linear-gradient(135deg, var(--ios-purple), #9D4EDD); }
+        .pipeline-icon.aggregate { background: linear-gradient(135deg, var(--ios-teal), var(--ios-blue)); }
+        .pipeline-icon.output { background: linear-gradient(135deg, var(--ios-green), var(--ios-cyan)); }
+
+        /* Step Number Badge */
+        .pipeline-number {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #2a2a3e, #1a1a2e);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1D1D1F;
-            margin-bottom: var(--space-sm);
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 3;
         }
 
-        .step-desc {
-            color: #6E6E73;
-            line-height: 1.6;
+        /* Step Content */
+        .pipeline-content {
+            margin-top: var(--space-md);
+            padding: 0 var(--space-sm);
+        }
+
+        .pipeline-title {
+            font-family: var(--font-display);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .pipeline-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .pipeline-tech {
+            display: inline-block;
+            margin-top: var(--space-sm);
+            padding: 4px 10px;
+            background: rgba(0, 122, 255, 0.08);
+            border-radius: var(--radius-full);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--ios-blue);
+        }
+
+        /* Connector Arrows */
+        .pipeline-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .connector-line {
+            height: 3px;
+            background: linear-gradient(90deg, 
+                rgba(0, 122, 255, 0.3), 
+                rgba(88, 86, 214, 0.5),
+                rgba(175, 82, 222, 0.3)
+            );
+            flex: 1;
+            position: relative;
+            border-radius: 2px;
+        }
+
+        .connector-arrow {
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 12px solid var(--ios-indigo);
+            flex-shrink: 0;
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.6; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(3px); }
+        }
+
+        /* Data Flow Animation Dots */
+        .connector-line::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--ios-blue);
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: dataFlow 2s ease-in-out infinite;
+            box-shadow: 0 0 10px var(--ios-blue);
+        }
+
+        @keyframes dataFlow {
+            0% { left: 0; opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { left: calc(100% - 8px); opacity: 0; }
+        }
+
+        .pipeline-connector:nth-child(4) .connector-line::before { animation-delay: 0.3s; }
+        .pipeline-connector:nth-child(6) .connector-line::before { animation-delay: 0.6s; }
+        .pipeline-connector:nth-child(8) .connector-line::before { animation-delay: 0.9s; }
+        .pipeline-connector:nth-child(10) .connector-line::before { animation-delay: 1.2s; }
+
+        /* Pipeline Detail Cards Below */
+        .pipeline-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-lg);
+            margin-top: var(--space-3xl);
+        }
+
+        .pipeline-detail-card {
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(var(--liquid-glass-blur));
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            border: 1px solid var(--liquid-glass-border);
+            box-shadow: var(--liquid-glass-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .pipeline-detail-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .detail-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .detail-icon.blue { background: linear-gradient(135deg, var(--ios-blue), var(--ios-indigo)); }
+        .detail-icon.purple { background: linear-gradient(135deg, var(--ios-purple), var(--ios-indigo)); }
+        .detail-icon.green { background: linear-gradient(135deg, var(--ios-green), var(--ios-teal)); }
+
+        .detail-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .detail-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .detail-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+            line-height: 1.4;
+        }
+
+        .detail-list li::before {
+            content: '→';
+            color: var(--ios-blue);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .detail-list li strong {
+            color: var(--text-primary);
+        }
+
+        /* Responsive Pipeline */
+        @media (max-width: 1024px) {
+            .pipeline-flow {
+                padding: var(--space-lg);
+            }
+            
+            .pipeline-step {
+                min-width: 130px;
+            }
+
+            .pipeline-connector {
+                width: 40px;
+            }
+
+            .pipeline-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pipeline-flow {
+                flex-direction: column;
+                align-items: center;
+                gap: var(--space-md);
+            }
+
+            .pipeline-connector {
+                width: 3px;
+                height: 40px;
+                flex-direction: column;
+            }
+
+            .connector-line {
+                width: 3px;
+                height: 100%;
+            }
+
+            .connector-arrow {
+                border-top: 12px solid var(--ios-indigo);
+                border-bottom: none;
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+            }
+
+            .connector-line::before {
+                animation: dataFlowVertical 2s ease-in-out infinite;
+            }
+
+            @keyframes dataFlowVertical {
+                0% { top: 0; left: 50%; transform: translateX(-50%); opacity: 0; }
+                20% { opacity: 1; }
+                80% { opacity: 1; }
+                100% { top: calc(100% - 8px); left: 50%; transform: translateX(-50%); opacity: 0; }
+            }
+
+            .pipeline-step {
+                min-width: auto;
+                max-width: none;
+            }
+        }
+
+        /* ========================================
+           Tech Stack Badge Strip
+           ======================================== */
+        
+        .tech-strip {
+            padding: var(--space-2xl) var(--space-xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        .tech-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .tech-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-lg);
+        }
+
+        .tech-badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--space-md);
+        }
+
+        .tech-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: var(--liquid-glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: 1px solid var(--liquid-glass-border);
+        }
+
+        .tech-badge svg {
+            width: 18px;
+            height: 18px;
         }
 
         /* ========================================
@@ -721,10 +1536,19 @@
         .footer {
             padding: var(--space-xl);
             text-align: center;
-            color: #8E8E93;
+            color: var(--text-tertiary);
             font-size: 0.85rem;
             position: relative;
             z-index: 1;
+        }
+
+        .footer a {
+            color: var(--ios-blue);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: var(--ios-teal);
         }
 
         /* ========================================
@@ -751,12 +1575,31 @@
             }
 
             .login-card {
-                max-width: 420px;
+                max-width: 440px;
                 margin: 0 auto;
             }
 
-            .features-grid {
+            .features-grid,
+            .dimensions-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .flagship-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .voice-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .voice-visual {
+                order: -1;
+            }
+
+            .voice-globe {
+                width: 300px;
+                height: 300px;
             }
         }
 
@@ -779,7 +1622,16 @@
                 gap: var(--space-lg);
             }
 
-            .features-grid {
+            .hero-stat:not(:last-child)::after {
+                display: none;
+            }
+
+            .features-grid,
+            .dimensions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .flagship-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -788,8 +1640,34 @@
                 text-align: center;
             }
 
-            .section-title {
+            .step:hover {
+                transform: translateY(-4px) !important;
+            }
+
+            .section-title,
+            .flagship-title,
+            .voice-title,
+            .dimensions-title {
                 font-size: 2rem;
+            }
+
+            .flagship-value {
+                font-size: 3rem;
+            }
+
+            .voice-globe {
+                width: 250px;
+                height: 250px;
+            }
+
+            .globe-center {
+                width: 80px;
+                height: 80px;
+            }
+
+            .globe-center svg {
+                width: 32px;
+                height: 32px;
             }
         }
     </style>
@@ -816,8 +1694,10 @@
             <span>SeniorMatch AI</span>
         </div>
         <div class="nav-links">
+            <a href="#stats" class="nav-link">Results</a>
+            <a href="#voice-agent" class="nav-link">Voice AI</a>
+            <a href="#dimensions" class="nav-link">How We Rank</a>
             <a href="#features" class="nav-link">Features</a>
-            <a href="#how-it-works" class="nav-link">How It Works</a>
         </div>
     </nav>
 
@@ -832,61 +1712,235 @@
                     AI-Powered Placement Platform
                 </div>
                 <h1 class="hero-title">
-                    Match Clients to <br>
-                    <span class="gradient-text">Perfect Communities</span>
+                    From 30 Min to <br>
+                    <span class="gradient-text">15 Seconds</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Streamline your senior living placement process with AI-powered recommendations, 
-                    voice transcription, and intelligent matching based on care needs, budget, and preferences.
+                    Transform senior living placements with AI that listens, understands, and recommends. 
+                    Multi-modal voice processing meets intelligent 8-dimension community matching.
                 </p>
                 
                 <div class="hero-stats">
                     <div class="hero-stat">
-                        <div class="hero-stat-value">500+</div>
+                        <div class="hero-stat-value">120x</div>
+                        <div class="hero-stat-label">Faster</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">15s</div>
+                        <div class="hero-stat-label">Avg. Processing</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">100+</div>
                         <div class="hero-stat-label">Communities</div>
-                    </div>
-                    <div class="hero-stat">
-                        <div class="hero-stat-value">93%</div>
-                        <div class="hero-stat-label">Time Saved</div>
-                    </div>
-                    <div class="hero-stat">
-                        <div class="hero-stat-value">10x</div>
-                        <div class="hero-stat-label">Faster Placements</div>
                     </div>
                 </div>
             </div>
 
             <!-- Login Card -->
             <div class="login-card">
-                <div class="login-header">
+        <div class="login-header">
+                    <div class="login-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                    </div>
                     <h2>Welcome Back</h2>
                     <p>Sign in to your dashboard</p>
-                </div>
+        </div>
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
                             <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
                 <form method="POST" action="/login">
-                    <div class="form-group">
-                        <label for="username">Username</label>
+            <div class="form-group">
+                <label for="username">Username</label>
                         <input type="text" id="username" name="username" class="form-input" placeholder="Enter your username" required autofocus>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
                         <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="login-btn">Sign In</button>
-                </form>
+            </div>
+                    <button type="submit" class="login-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        Sign In
+                    </button>
+        </form>
 
                 <div class="credentials-box">
                     <h4>Demo Credentials</h4>
-                    <p>Username: <code>admin</code> / Password: <code>admin123</code></p>
-                    <p>Username: <code>consultant</code> / Password: <code>consultant123</code></p>
+                    <p>Admin: <code>admin</code> / <code>admin123</code></p>
+                    <p>User: <code>consultant</code> / <code>consultant123</code></p>
+        </div>
+    </div>
+        </div>
+    </section>
+
+    <!-- Flagship Stats Section -->
+    <section class="flagship-stats" id="stats">
+        <div class="flagship-container">
+            <h2 class="flagship-title">
+                <span class="highlight">Measurable Impact</span> for Placement Agents
+            </h2>
+            <p class="flagship-subtitle">
+                Real results from AI-powered community matching
+            </p>
+
+            <div class="flagship-grid">
+                <div class="flagship-card">
+                    <div class="flagship-value">120x</div>
+                    <div class="flagship-label">Faster Processing</div>
+                    <div class="flagship-desc">From 30 minutes to 15 seconds</div>
+                </div>
+                <div class="flagship-card">
+                    <div class="flagship-value">8</div>
+                    <div class="flagship-label">AI Ranking Dimensions</div>
+                    <div class="flagship-desc">Multi-factor intelligent matching</div>
+                </div>
+                <div class="flagship-card">
+                    <div class="flagship-value">Top 5</div>
+                    <div class="flagship-label">Personalized Matches</div>
+                    <div class="flagship-desc">Ranked by compatibility score</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voice Agent Showcase -->
+    <section class="voice-showcase" id="voice-agent">
+        <div class="voice-container">
+            <div class="voice-content">
+                <div class="voice-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                    </svg>
+                    Real-Time Voice AI
+                </div>
+                <h2 class="voice-title">Meet Your AI Voice Assistant</h2>
+                <p class="voice-desc">
+                    Powered by Gemini 2.5 Flash, our voice agent conducts real-time conversations 
+                    with clients, extracts their needs naturally, and delivers personalized 
+                    community recommendations—all through a simple QR code.
+                </p>
+
+                <div class="voice-features">
+                    <div class="voice-feature">
+                        <div class="voice-feature-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <span class="voice-feature-text">Natural conversation—no scripts, no menus</span>
+                    </div>
+                    <div class="voice-feature">
+                        <div class="voice-feature-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <rect x="7" y="7" width="3" height="3"></rect>
+                                <rect x="14" y="7" width="3" height="3"></rect>
+                                <rect x="7" y="14" width="3" height="3"></rect>
+                                <rect x="14" y="14" width="3" height="3"></rect>
+                            </svg>
+                        </div>
+                        <span class="voice-feature-text">QR code access for events & open houses</span>
+                    </div>
+                    <div class="voice-feature">
+                        <div class="voice-feature-icon purple">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <span class="voice-feature-text">Automatic CRM integration & logging</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="voice-visual">
+                <div class="voice-globe">
+                    <div class="globe-ring"></div>
+                    <div class="globe-ring"></div>
+                    <div class="globe-ring"></div>
+                    <div class="globe-ring"></div>
+                    <div class="globe-center">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8 Dimensions Section -->
+    <section class="dimensions" id="dimensions">
+        <div class="dimensions-container">
+            <div class="dimensions-header">
+                <div class="dimensions-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    Multi-Factor AI Ranking
+                </div>
+                <h2 class="dimensions-title">8 Dimensions of Intelligent Matching</h2>
+                <p class="dimensions-subtitle">
+                    Our AI evaluates every community across eight key dimensions to find the perfect fit
+                </p>
+            </div>
+
+            <div class="dimensions-grid">
+                <div class="dimension-card">
+                    <div class="dimension-icon d1">💼</div>
+                    <h3 class="dimension-title">Business Value</h3>
+                    <p class="dimension-desc">Partnership tiers & placement incentives</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d2">💰</div>
+                    <h3 class="dimension-title">Total Cost</h3>
+                    <p class="dimension-desc">Monthly fees & financial fit</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d3">📍</div>
+                    <h3 class="dimension-title">Distance</h3>
+                    <p class="dimension-desc">Geographic proximity to client</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d4">⏰</div>
+                    <h3 class="dimension-title">Availability</h3>
+                    <p class="dimension-desc">Timeline & waitlist status</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d5">💵</div>
+                    <h3 class="dimension-title">Budget Efficiency</h3>
+                    <p class="dimension-desc">Value for money optimization</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d6">👫</div>
+                    <h3 class="dimension-title">Couple Friendly</h3>
+                    <p class="dimension-desc">Accommodations for couples</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d7">🏠</div>
+                    <h3 class="dimension-title">Amenity Match</h3>
+                    <p class="dimension-desc">AI-powered amenity alignment</p>
+                </div>
+                <div class="dimension-card">
+                    <div class="dimension-icon d8">🎯</div>
+                    <h3 class="dimension-title">Holistic Fit</h3>
+                    <p class="dimension-desc">Overall AI compatibility score</p>
                 </div>
             </div>
         </div>
@@ -917,8 +1971,8 @@
                             <line x1="12" y1="19" x2="12" y2="22"></line>
                         </svg>
                     </div>
-                    <h3 class="feature-title">Voice Transcription</h3>
-                    <p class="feature-desc">Upload client consultation recordings and let AI automatically extract care needs, budget, and preferences.</p>
+                    <h3 class="feature-title">Audio Transcription</h3>
+                    <p class="feature-desc">Upload recordings and let AI extract care needs, budget, and preferences automatically.</p>
                 </div>
 
                 <div class="feature-card">
@@ -930,7 +1984,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">AI Recommendations</h3>
-                    <p class="feature-desc">Get intelligent community matches ranked by compatibility with client needs, including care level, location, and budget.</p>
+                    <p class="feature-desc">Intelligent matching ranked by care level, location, budget compatibility, and more.</p>
                 </div>
 
                 <div class="feature-card">
@@ -942,7 +1996,7 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Community Database</h3>
-                    <p class="feature-desc">Access a comprehensive database with advanced filters for care level, monthly fees, ZIP code, and enhanced services.</p>
+                    <p class="feature-desc">Comprehensive database with advanced filters for care level, fees, and services.</p>
                 </div>
 
                 <div class="feature-card">
@@ -952,11 +2006,10 @@
                             <polyline points="14 2 14 8 20 8"></polyline>
                             <line x1="16" y1="13" x2="8" y2="13"></line>
                             <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
                     </div>
-                    <h3 class="feature-title">Smart Forms</h3>
-                    <p class="feature-desc">Manual consultation forms with intelligent field suggestions and auto-complete based on common client profiles.</p>
+                    <h3 class="feature-title">CRM Integration</h3>
+                    <p class="feature-desc">Automatic push to Google Sheets with consultation details and recommendations.</p>
                 </div>
 
                 <div class="feature-card">
@@ -967,68 +2020,242 @@
                         </svg>
                     </div>
                     <h3 class="feature-title">Waitlist Tracking</h3>
-                    <p class="feature-desc">Real-time waitlist status for each community - know availability at a glance: immediate, 1-2 months, or 6+ months.</p>
+                    <p class="feature-desc">Real-time availability status: immediate, 1-2 months, or 6+ months waitlist.</p>
                 </div>
 
                 <div class="feature-card">
                     <div class="feature-icon red">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                         </svg>
                     </div>
                     <h3 class="feature-title">Multi-Language</h3>
-                    <p class="feature-desc">Support for multiple languages including English, Spanish, Chinese, Korean, and Vietnamese for diverse client needs.</p>
+                    <p class="feature-desc">Support for English, Spanish, Hindi, and more for diverse client needs.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Section -->
+    <!-- How It Works - Horizontal Pipeline Section -->
     <section class="how-it-works" id="how-it-works">
-        <div class="features-container">
+        <div class="pipeline-container">
             <div class="section-header">
                 <div class="section-tag">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                     </svg>
-                    Simple Process
+                    Data Pipeline
                 </div>
                 <h2 class="section-title">How It Works</h2>
                 <p class="section-subtitle">
-                    From consultation to placement in three easy steps
+                    From voice input to ranked recommendations in 15 seconds
                 </p>
             </div>
 
-            <div class="steps-container">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3 class="step-title">Upload or Enter Client Details</h3>
-                        <p class="step-desc">
-                            Upload a voice recording of your client consultation or manually enter details including care level needs (Independent, Assisted, Memory Care), budget range, timeline, and special requirements like pets or couples accommodations.
-                        </p>
+            <!-- Horizontal Pipeline Flow -->
+            <div class="pipeline-flow">
+                <!-- Step 1: Input -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon input">
+                        <span class="pipeline-number">1</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="22"></line>
+                        </svg>
+                    </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">Input</h4>
+                        <p class="pipeline-desc">Audio, Voice, or Text</p>
+                        <span class="pipeline-tech">Multi-Modal</span>
                     </div>
                 </div>
 
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3 class="step-title">AI Analyzes & Matches</h3>
-                        <p class="step-desc">
-                            Our AI processes the information, transcribes voice recordings, extracts key requirements, and searches the database for communities that best match your client's unique needs and preferences.
-                        </p>
+                <div class="pipeline-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+
+                <!-- Step 2: Extract -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon extract">
+                        <span class="pipeline-number">2</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">AI Extract</h4>
+                        <p class="pipeline-desc">Parse requirements</p>
+                        <span class="pipeline-tech">Gemini 2.5</span>
                     </div>
                 </div>
 
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3 class="step-title">Review Ranked Recommendations</h3>
-                        <p class="step-desc">
-                            Receive a ranked list of community recommendations with match scores, pricing, availability, and detailed explanations of why each community fits your client's requirements.
-                        </p>
+                <div class="pipeline-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+
+                <!-- Step 3: Filter -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon filter">
+                        <span class="pipeline-number">3</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
                     </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">Hard Filter</h4>
+                        <p class="pipeline-desc">100+ communities</p>
+                        <span class="pipeline-tech">SQL Engine</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+
+                <!-- Step 4: Rank -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon rank">
+                        <span class="pipeline-number">4</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                    </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">8D Ranking</h4>
+                        <p class="pipeline-desc">Score each match</p>
+                        <span class="pipeline-tech">5 Rule + 3 AI</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+
+                <!-- Step 5: Aggregate -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon aggregate">
+                        <span class="pipeline-number">5</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 6v6l4 2"></path>
+                        </svg>
+                    </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">Aggregate</h4>
+                        <p class="pipeline-desc">Weighted scoring</p>
+                        <span class="pipeline-tech">Borda Count</span>
+                    </div>
+                </div>
+
+                <div class="pipeline-connector">
+                    <div class="connector-line"></div>
+                    <div class="connector-arrow"></div>
+                </div>
+
+                <!-- Step 6: Output -->
+                <div class="pipeline-step">
+                    <div class="pipeline-icon output">
+                        <span class="pipeline-number">6</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                    </div>
+                    <div class="pipeline-content">
+                        <h4 class="pipeline-title">Output</h4>
+                        <p class="pipeline-desc">Top 5 + CRM Push</p>
+                        <span class="pipeline-tech">15 Seconds</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline Detail Cards -->
+            <div class="pipeline-details">
+                <div class="pipeline-detail-card">
+                    <div class="detail-header">
+                        <div class="detail-icon blue">🎤</div>
+                        <h3 class="detail-title">Multi-Modal Input</h3>
+                    </div>
+                    <ul class="detail-list">
+                        <li>Upload audio recordings (.m4a, .mp3, .wav)</li>
+                        <li>Real-time voice conversation via QR code</li>
+                        <li>Manual text entry for quick consultations</li>
+                        <li>Multi-language: English, Spanish, Hindi</li>
+            </ul>
+        </div>
+
+                <div class="pipeline-detail-card">
+                    <div class="detail-header">
+                        <div class="detail-icon purple">🧠</div>
+                        <h3 class="detail-title">8-Dimension AI Ranking</h3>
+                    </div>
+                    <ul class="detail-list">
+                        <li><strong>Rule-Based:</strong> Business Value, Cost, Distance, Budget Efficiency, Couple Fit</li>
+                        <li><strong>AI-Powered:</strong> Availability Match, Amenity Alignment, Holistic Fit</li>
+                        <li>Weighted Borda Count aggregation for final score</li>
+                        <li>Configurable weights via Admin Panel</li>
+                    </ul>
+    </div>
+
+                <div class="pipeline-detail-card">
+                    <div class="detail-header">
+                        <div class="detail-icon green">📊</div>
+                        <h3 class="detail-title">Actionable Output</h3>
+                    </div>
+                    <ul class="detail-list">
+                        <li>Top 5 ranked community recommendations</li>
+                        <li>AI-generated reasons for each ranking</li>
+                        <li>Full community details: pricing, amenities, availability</li>
+                        <li>One-click CRM push to Google Sheets</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Strip -->
+    <section class="tech-strip">
+        <div class="tech-container">
+            <div class="tech-label">Powered By</div>
+            <div class="tech-badges">
+                <div class="tech-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Gemini 2.5 Flash
+                </div>
+                <div class="tech-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    OpenRouter
+                </div>
+                <div class="tech-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278zm-.005 1.09v.006c.225 0 .406.044.558.127.666.382.955 1.835.73 3.704-.054.46-.142.945-.25 1.44-.96-.236-2.006-.417-3.107-.534-.66-.905-1.345-1.727-2.035-2.447 1.592-1.48 3.087-2.292 4.105-2.295zm-9.77.02c1.012 0 2.514.808 4.11 2.28-.686.72-1.37 1.537-2.02 2.442-1.107.117-2.154.298-3.113.538-.112-.49-.195-.964-.254-1.42-.23-1.868.054-3.32.714-3.707.19-.09.4-.127.563-.132zm4.882 3.05c.455.468.91.992 1.36 1.564-.44-.02-.89-.034-1.345-.034-.46 0-.915.01-1.36.034.44-.572.895-1.096 1.345-1.565zM12 8.1c.74 0 1.477.034 2.202.093.406.582.802 1.203 1.183 1.86.372.64.71 1.29 1.018 1.946-.308.655-.646 1.31-1.013 1.95-.38.66-.773 1.288-1.18 1.87-.728.063-1.466.098-2.21.098-.74 0-1.477-.035-2.202-.093-.406-.582-.802-1.204-1.183-1.86-.372-.64-.71-1.29-1.018-1.946.303-.657.646-1.313 1.013-1.954.38-.66.773-1.286 1.18-1.868.728-.064 1.466-.098 2.21-.098zm-3.635.254c-.24.377-.48.763-.704 1.16-.225.39-.435.782-.635 1.174-.265-.656-.49-1.31-.676-1.947.64-.15 1.315-.283 2.015-.386zm7.26 0c.695.103 1.365.23 2.006.387-.18.632-.405 1.282-.66 1.933-.2-.39-.41-.783-.64-1.174-.225-.392-.465-.774-.705-1.146zm3.063.675c.484.15.944.317 1.375.498 1.732.74 2.852 1.708 2.852 2.476-.005.768-1.125 1.74-2.857 2.475-.42.18-.88.342-1.355.493-.28-.958-.646-1.956-1.1-2.98.45-1.017.81-2.01 1.085-2.964zm-13.395.004c.278.96.645 1.957 1.1 2.98-.45 1.017-.812 2.01-1.086 2.964-.484-.15-.944-.318-1.37-.5-1.732-.737-2.852-1.706-2.852-2.474 0-.768 1.12-1.742 2.852-2.476.42-.18.88-.342 1.356-.494zm11.678 4.28c.265.657.49 1.312.676 1.948-.64.157-1.316.29-2.016.39.24-.375.48-.762.705-1.158.225-.39.435-.788.636-1.18zm-9.945.02c.2.392.41.783.64 1.175.23.39.465.772.705 1.143-.695-.102-1.365-.23-2.006-.386.18-.63.406-1.282.66-1.933zM17.92 16.32c.112.493.2.968.254 1.423.23 1.868-.054 3.32-.714 3.708-.147.09-.338.128-.563.128-1.012 0-2.514-.807-4.11-2.28.686-.72 1.37-1.536 2.02-2.44 1.107-.118 2.154-.3 3.113-.54zm-11.83.01c.96.234 2.006.415 3.107.532.66.905 1.345 1.727 2.035 2.446-1.595 1.483-3.092 2.295-4.11 2.295-.22-.005-.406-.05-.553-.132-.666-.38-.955-1.834-.73-3.703.054-.46.142-.944.25-1.438zm4.56.64c.44.02.89.034 1.345.034.46 0 .915-.01 1.36-.034-.44.572-.895 1.095-1.345 1.565-.455-.47-.91-.993-1.36-1.565z"/>
+                    </svg>
+                    Flask + SocketIO
+                </div>
+                <div class="tech-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
+                    </svg>
+                    Google Sheets API
                 </div>
             </div>
         </div>
@@ -1036,7 +2263,65 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>Senior Living Recommendation System &copy; 2025. Built with AI-powered technology.</p>
+        <p>SeniorMatch AI &copy; 2025 · MS Analytics Capstone Project · <a href="#">University of Rochester</a></p>
     </footer>
+
+    <script>
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Animate stats on scroll
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px'
+        };
+
+        const animateValue = (element, start, end, duration, prefix = '', suffix = '') => {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = prefix + value + suffix;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        };
+
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const statValues = entry.target.querySelectorAll('.flagship-value');
+                    statValues.forEach(stat => {
+                        const text = stat.textContent;
+                        if (text.includes('%')) {
+                            animateValue(stat, 0, 93, 1500, '', '%');
+                        } else if (text === '8') {
+                            animateValue(stat, 0, 8, 1000);
+                        }
+                    });
+                    statsObserver.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        const flagshipSection = document.querySelector('.flagship-stats');
+        if (flagshipSection) {
+            statsObserver.observe(flagshipSection);
+        }
+    </script>
 </body>
 </html>
